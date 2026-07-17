@@ -24,5 +24,51 @@ with open("note.txt", "r", encoding="utf-8") as f:
     note = f.read()
     print(note)
 
+#普通写法
+result = []
+for i in range(5):
+    result.append(i*2)
+print(result)
+
+#列表推导式
+result = [i*2 for i in range(5)]
+print(result)
+
+#加条件
+result = [i*2 for i in range(10) if i%2 == 0]
+print(result)
+
+tryone = [i for i in range(20) if i%3 == 0]
+print(tryone)
+
+#字符串批量去掉空格
+lines = ["  i want to be with u", "  thank u next  "]
+cleaned = [line.strip() for line in lines]
+print(cleaned)
+
+#普通列表
+line1 = [i for i in range(10)]
+#生成器
+line2 = (i for i in range(20))
+for i in line2:
+    print(i)
+
+#装饰器
+import time
+
+def my_timer(func):
+    def wrapper():
+        start = time.time()
+        func()
+        end = time.time()
+        print(f"运行耗时：{end - start}秒")
+    return wrapper
+
+
+@my_timer
+def say_hello():
+    print("你好")
+
+say_hello()
 
 
