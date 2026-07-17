@@ -18,10 +18,7 @@ with open("test.txt", "r", encoding="utf-8") as f:
 
 #自己尝试
 with open("note.txt", "w", encoding="utf-8") as f:
-    f.write("我想我会一直孤单" \
-    "我支持你" \
-    "我理解你" \
-    "我爱你")
+    f.write("我想我会一直孤单\n" "我支持你\n" "我理解你\n" "我爱你")
 
 with open("note.txt", "r", encoding="utf-8") as f:
     note = f.read()
