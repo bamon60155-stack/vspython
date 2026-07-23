@@ -44,6 +44,7 @@
 
 import os
 from openai import OpenAI
+from openai import AuthenticationError,APIConnectionError,RateLimitError
 
 client = OpenAI(
     api_key=os.environ.get('DEEPSEEK_API_KEY'),
@@ -53,21 +54,41 @@ messages = [ {"role": "system", "content": "You are a helpful assistant"}]
 
 while True:
     user_input = input("user:")
+
     if user_input == "exit":
         print("再见！")
         break
+
+    if user_input.strip() =="":
+        print("你没有输入内容")
+        continue  
+    
     messages.append({"role": "user", "content": user_input})
-    response = client.chat.completions.create(
+    try:
+       response = client.chat.completions.create(
        model = "deepseek-v4-flash",
        messages = messages,
        stream = False,
     #    reasoning_effort="high",
     #    extra_body={"thinking": {"type": "enabled"}}
-    )
+       )
 
-    print("AI:" + response.choices[0].message.content)
-    ai_reply = response.choices[0].message.content
-    messages.append({"role":"assistant","content":ai_reply})
+       print("AI:" + response.choices[0].message.content)
+       ai_reply = response.choices[0].message.content
+       messages.append({"role":"assistant","content":ai_reply})
+    except AuthenticationError:
+        print("身份验证失败,请检查你的API Key是否正确")
+        break
+    except APIConnectionError:
+        print("网络连接失败,请检查你的网络和代理设置")
+        continue
+    except RateLimitError:
+        print("请求太频繁了,请稍等一下再试")
+        continue
+    except Exception as e:
+        print(f"发生了未知错误:{e}")
+        continue
+
 
 # while True:
 #     number = input("请输入数字：")
