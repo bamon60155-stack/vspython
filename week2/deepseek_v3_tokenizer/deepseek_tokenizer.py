@@ -3,7 +3,7 @@
 import transformers
 
 # chat_tokenizer_dir = "./"
-chat_tokenizer_dir = "C:/Users/lenovo/Desktop/vspython/deepseek_v3_tokenizer/"
+chat_tokenizer_dir = "C:/Users/lenovo/Desktop/vspython/week2/deepseek_v3_tokenizer/"
 
 
 tokenizer = transformers.AutoTokenizer.from_pretrained( 
