@@ -3,7 +3,7 @@ from chat_client import create_client, get_ai_reply
 def main():
     client = create_client()
     messages = [
-        {"role": "system","content": "you are a helpful assistant"}
+        {"role": "system","content": "你是一个很有帮助的AI助手"}
     ]
 
     while True:
