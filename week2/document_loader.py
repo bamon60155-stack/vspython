@@ -1,3 +1,12 @@
+def split_by_paragraph(text):
+    """
+    按段落切分文本，以连续的换行符作为分隔标志
+    """
+    paragraphs = text.split("\n\n")  # 按“两个换行符”切开
+    # 顺手清理一下，去掉可能存在的空段落、以及每段前后多余的空格
+    paragraphs = [p.strip() for p in paragraphs if p.strip() !=""]
+    return paragraphs
+
 def split_text(text, chunk_size=500, overlap=50):
     """
     把长文本按固定字数切分成小块
@@ -13,3 +22,4 @@ def split_text(text, chunk_size=500, overlap=50):
         chunks.append(chunk)
         start += (chunk_size - overlap) # 下一块的起点，往回退一点，形成重叠
     return chunks
+
