@@ -16,7 +16,7 @@ tools = [
 import os
 import json
 from openai import OpenAI
-from get_current_time import get_current_time
+from langchain_calling_demo import get_current_time
 
 client = OpenAI(
     api_key=os.environ.get("DEEPSEEK_API_KEY"),
