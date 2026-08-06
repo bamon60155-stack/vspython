@@ -9,7 +9,7 @@ def get_current_time() -> str:
 
 @tool
 def calculate(expression: str) -> str:
-    """计算一个数学表达式的结果，比如输入3+5*2,当用户需要做数学计算式使用"""
+    """计算一个数学表达式的结果,比如输入3+5*2,当用户需要做数学计算式使用"""
     try:
         results = eval(expression)
         return str(results)
