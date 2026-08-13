@@ -1,0 +1,1032 @@
+Signal Simulator for Starlink Ku-Band Downlink
+† ∗ ∗
+Zacharias M. Komodromos , Wenkai Qin , Todd E. Humphreys
+∗
+Department of Aerospace Engineering and Engineering Mechanics, The University of Texas at Austin
+†
+Department of Electrical and Computer Engineering, The University of Texas at Austin
+ABSTRACT
+This paper summarizes the current-known model for Starlink’s Ku-band downlink signal and develops a platform for simulating
+a received signal. The simulator models key elements of the signal structure, along with channel effects such as noise, delay,
+and Doppler. Further, this paper outlines a hypothesis testing detection process for acquisition of a Starlink downlink frame.
+The information in this paper will be of general interest to those seeking to understand the Starlink waveform, but is particularly
+targeted to those wishing to exploit Starlink as an alternative to GNSS for position, navigation, and timing (PNT). The simulator
+can also make use of precise ephemerides to generate more faithful signals. Theoretical limits on the minimum signal-to-noise
+ratio required to detect a frame are presented and supported by simulated signals. Finally, the hypothesis testing detection
+process is applied to live-captured Starlink data.
+I. BIOGRAPHIES
+Zacharias M. Komodromos (B.S., Iowa State University) is a Ph.D. student in the Department of Electrical and Computer
+Engineering at The University of Texas at Austin and a member of the UT Radionavigation Laboratory. His research interests
+include wireless communications and re-purposing broadband Internet satellites for positioning, navigation, and timing.
+Wenkai Qin (B.S., Harvey Mudd College) is a Ph.D. student in the Department of Aerospace Engineering and Engineering
+Mechanics at The University of Texas at Austin and a graduate research assistant in the UT Radionavigation Laboratory. His
+current research interests include LEO PNT, swarm-based navigation, and SLAM.
+Todd E. Humphreys (B.S., M.S., Utah State University; Ph.D., Cornell University) holds the Ashley H. Priddy Centennial
+Professorship in Engineering in the Department of Aerospace Engineering and Engineering Mechanics at the University of
+Texas at Austin. He is Director of the Wireless Networking and Communications Group and of the UT Radionavigation
+Laboratory, where he specializes in the application of optimal detection and estimation techniques to positioning, navigation,
+and timing. His awards include the UT Regents’ Outstanding Teaching Award (2012), the NSF CAREER Award (2015), the
+ION Thurlow Award (2015), the PECASE (NSF, 2019), and the ION Kepler Award (2023). He is Fellow of the Institute of
+Navigation and of the Royal Institute of Navigation.
+II. INTRODUCTION
+Low Earth orbit satellite (LEO) constellations designed for broadband communication have been the subject of recent studies
+in positioning, navigation, and timing (PNT). Among the various LEO constellations, Starlink’s constellation has been the most
+popular mainly due to its higher number of deployed satellite vehicles (SV) and thus coverage, with plans for up to 42,000
+SVs in LEO [SpaceX, 2021] according to filings to the U.S. Federal Communications Commission.
+With regards to PNT, some literature has explored the benefits of dual-purposing communications constellations for PNT in
+a cooperative or fused fashion, showing how using just 1.6% of the downlink capacity could provide pseudoranging superior
+to traditional GNSS [Iannucci and Humphreys, 2020], [Iannucci and Humphreys, 2022]. Other literature has specifically
+explored using Starlink’s constellation for opportunistic PNT, where Doppler-based and carrier-phase-based positioning has
+been demonstrated to work with Starlink using a 2.5-MHz-wide receiver [Neinavaie et al., 2021], [Neinavaie et al., 2022],
+[Khalife et al., 2022], and a 1-MHz-wide receiver [Jardak and Adam, 2023].
+A more advantageous method would be to make use of the underlying communications signal transmitted by Starlink. More
+recent work in [Humphreys et al., 2023] has revealed details about the Starlink signal structure that could enable pseudorange-
+based positioning, providing timing better than doppler-based positioning in the range of 100 µs [Psiaki, 2021]. Given that
+a single Starlink channel spans 240MHz, the receiver one must maintain in order to opportunistically capture entire Starlink
+channels is cumbersome. A tool that generates realistic Starlink signals would enable many without the necessary equipment
+to study the signals. This is especially the case for pseudorange PNT-based inquiries since at least four SV signals are required
+for instantaneous multi-laterated position and time determination without a priori constraints [Reid et al., 2020].
+Copyright © 2023 by Zacharias Komodromos, ION GNSS + 2023 conference preprint
+Wenkai Qin, and Todd E. Humphreys
+Signal toolboxes for simulating, analyzing, and configuring popular communication signal standards (e.g. LTE) have long been
+useful, so the goal of this paper is to provide a similar simulator to address the rising popularity of Starlink. The simulator,
+named the University of Texas Starlink Signal Simulator, is based on the signal structure and findings published in [Humphreys
+et al., 2023] and aims to support study of the signals both for communications and PNT.
+While our simulator could opt for a stochastic geometry approach to generating realistic parameters, such as in [Okati and
+Riihonen, 2022], we favor a different approach. The simulator intakes ephemeris information for Starlink SVs, provided publicly
+by SpaceX [Sta, 2023] or through NORAD, in order to generate more faithful simulations compared to stochastic-dependent
+generations. By providing the simulator with ephemerides treated as the truth, the simulated signals can be used to study the
+communication signal for PNT purposes. Additionally, with the true ephemerides and a user-desired location for the receiver,
+modeling Doppler and pathloss effects is trivial.
+To validate a signal’s presence, this paper showcases a Neyman-Pearson hypothesis testing approach. There are many such
+analyses for non-data-aided scenarios, those agnostic to the data carried by the symbols, such as [Xu, 2014] which makes
+use of the cylcic prefix in OFDM symbols. Much work also exists in data-aided scenarios via matched filtering, such as [Du
+et al., 2021] and more generally [Borio et al., 2008]. Since symbols of the signal have already been revealed and are known
+to be common across all SVs, this paper adopts a data-aided approach, although if the signals change in the future, while still
+remaining as OFDM, the non-data aided approach could be used, or the process in [Humphreys et al., 2023] can be repeated to
+extract the new synchronization sequences. Leveraging hypothesis testing for signal detection, a complex ambiguity function
+(CAF) is formed and used for acquisition. Using acquisition methods described in this paper, one could further study the time
+of arrival of frames from Starlink SVs and characterize their timing stability.
+While there is still much unknown about the scheduling of servicing satellite vehicles (SVs), beamforming details, and
+synchronization sequence cadence within the signal, enough is known such that a simulator can be formed in which some
+parameters can remain variable to accommodate for future adaptation. For example, the number of SVs serving a cell, or the
+number of cells that a single SV serves at a time is unconfirmed, and can be parametrized as a probability of observing a signal
+in a given channel. Further, it remains speculative just how many of the channels a Starlink SV uses, or how frequently it
+hops between them. While work in [Neinavaie and Kassas, 2022] and more recently in [Bla´zquez-Garc´ıa et al., 2023], provide
+the scale in which one can expect switching between satellites, this paper will depend on a provided binomial probability for
+observing the signal in its generation, and will be limited to a single channel due to the large file sizes a larger bandwidth
+generation would require.
+This paper offers three contributions. First, Starlink downlink frame generation is presented, including all aforementioned signal
+effects. Second, statistics for signal detection and acquisition are developed, analyzed, and showcased. Third, the simulator
+will be used to generate a received signal to be processed for communications through extracting the data, and PNT through
+obtaining a time of arrival (TOA).
+Notation: Column vectors are denoted with lowercase bold, e.g., x. Scalars are denoted without bold, e.g., x. The nth entry
+of a vector x is denoted x(n). A sub-vector of a vector x from the nth entry to the (n + N )th entry is denoted x(n : n + N ).
+The element-wise product, or Hadamard product, of two vectors x and y is denoted with x ⊙ y. Multidimensional vectors
+are also denoted with bold, e.g., X. For a matrix with 3 dimensions, the mth ith kth entry is X (k), the mth ith vector is
+mi
+X , and the mth matrix is X . Zero-based indexing is used throughout the paper.
+mi m
+III. SIGNAL STRUCTURE, PROPERTIES, AND MODEL
+This paper adopts the nomenclature, signal models, and Starlink-specific parameters from [Humphreys et al., 2023]. A summary
+of the essential signal structure is presented in the following subsection, followed by models for Doppler and fading. Finally,
+our method for signal generation is introduced.
+A. Signal Frame structure
+A single Starlink frame consists of N = 302 non-zero symbols, each T = 4.4 µs in duration followed by a frame guard
+sf sym
+interval T = 4.533 µs long, totaling a frame period T = 1/750 s. The first symbol is occupied by the primary synchronization
+fg f
+sequence (PSS), which has a native time-domain representation. All other nonzero symbols are standard OFDM symbols. The
+first such symbol, occupying the second symbol interval, is the secondary synchronization sequence (SSS).
+The OFDM symbols in each frame may be further described by their OFDM parameters, such as the cyclically-prepended
+guard interval duration T = 0.133 µs, number of subcarriers N = 1024, channel bandwidth F = 240 MHz, and subcarrier
+g s
+spacing F = F /N . For a pictorial view of the frame, refer to Fig. 1.
+s
+
+...
+...
+...
+...
+...
+...
+...
+...
+...
+f
+Frame: T = 302T + T
+f sym fg
+T T
+sym
+T T = T + T
+g 8 T fg sym g
+PSS SSS T CSS PSS
+g
+F
+4F
+t
+0 1 2 301 302 0
+gutter
+8 repetitions of the PSS subsequence frame guard
+with the first inverted interval
+PSS cyclic prefix copied from
+tail and inverted
+Fig. 1: Frame diagram from [Humphreys et al., 2023].
+TABLE I: Starlink Downlink Signal Parameters from [Humphreys et al., 2023]
+Name Parameter Value Units
+Channel bandwidth F 240 MHz
+s
+Number of subcarriers in F N 1024
+s
+Number of cyclic prefic intervals N 32
+g
+Frame period T 1/750 s
+f
+Frame guard interval T 68/15 = 4.533 µs
+fg
+Number of non-zero symbols per frame N 302
+sf
+Number of data symbols in a frame N 298
+sfd
+Useful OFDM symbol interval T = N/F 64/15 = 4.266 µs
+s
+Symbol guard interval T = N /F 2/15 = 0.133 µs
+g g s
+OFDM symbol duration T = T + T 4.4 µs
+sym g
+Subcarrier spacing F = F /N 234375 Hz
+s
+Center frequency of ith channel F 10.7 + F/2 + 0.25(i − 1/2) GHz
+ci
+Channel spacing F 250 MHz
+δ
+Width of guard band between channels F 10 MHz
+g
+The ith symbol of the mth frame is expressed as
+N−1
+
+(cid:88)
+x (t) = √ X (k) exp (j2πF (t − T )k) , 0 ≤ t < T (1)
+mi mi g sym
+N
+k=0
+where X is a serial data sequence.
+mi
+All symbols except the frame guard interval and PSS are standard OFDM symbols, modulated with quadrature amplitude
+modulation (QAM). Only 4QAM and 16QAM have been observed thus far [Humphreys et al., 2023]. The SSS is anchored
+with a fixed initial phase relative to the PSS, whereas most following symbols exhibit a π/4 phase shift with respect to the
+PSS, as observed in [Humphreys et al., 2023]. One such symbol is the final OFDM symbol, which is 4QAM but has a π/4
+phase offset relative to the PSS.
+Table I provides a concise presentation of Starlink’s downlink signal parameters. Fig. 2 provides a pictorial view of the frame
+and channel space.
+B. Symbol generation
+Starlink’s downlink signal consists of 8 channels each F wide, with a channel guard of F between them, placed within the
+s g
+10.7 − 12.7GHz frequency band. The ith channel is centered at F , as expressed in Table I. Due to the large amount of data
+ci
+to be generated by a signal simulator, this paper will limit the simulator to a single channel, although a process for extending
+to multiple channels is trivial.
+Algorithm 1 showcases the method used to generate a single symbol given a serial data sequence X . A discrete version of
+mi
+(1) is applied to the data sequence through the IFFT, followed by appending the cyclic prefix. Next, the signal is appropriately
+frequency shifted to account for a provided receiver center frequency F relative to the channel center frequency F , followed
+cr c
+by resampling to account for a provided receiver sampling frequency F up to the channel bandwidth F . Finally, additive white
+sr s
+
+Fig. 2: Frame and Channel Layout of the Starlink Ku-band downlink signal depicting 3 consecutive frames and 2 channels.
+Algorithm 1: genStarlinkOFDM(X , SNR, F , F , F )
+mi c cr sr
+N×1
+Input : X ∈ C , SNR, F , F , F
+mi c cr sr
+(N+N )×1
+Output: x ∈ C
+g
+mi
+x = IFFT(X )
+
+mi
+x = [x(N − N − 2 : N − 1), x(0 : N − 1)]
+
+mi g
+(cid:112)
+σ = 1/(2 · SNR)
+
+w
+t = [0 : (N + N − 1)] /F
+
+g s
+x = x ⊙ exp(j2π(F − F )t)
+
+mi mi c cr
+x = resample(x , F , F )
+
+mi mi s sr
+x = AWGN(x ,σ )
+
+mi mi w
+Gaussian noise (AWGN) is applied to the signal based on a provided signal-to-noise ratio (SNR). Fig. 3 shows spectrograms
+of concatenated symbols with different receiver center frequencies F and receiver sampling rates F .
+cr sr
+C. Ephemeris Data and Doppler Model
+Starlink currently offers ephemeris data for all their satellites. The data this paper utilizes are published in the Modified ITC file
+format including the SVs position, velocity, and covariances. Each file includes a 72-hour prediction, and the files are distributed
+every 8 hours at 4:30, 12:30, and 20:30 UTC [Sta, 2023]. The predictions provide estimates at 60-second steps. Alternatively,
+one could generate the appropriate position time histories to provide the simulator from data provided by NORAD.
+Using the public ephemerides and a receiver location, one can trivially model the apparent Doppler of the signal. For illustrative
+purposes, a visual of the orbit of SV with ID 1800 on April 14th 2023 over a 15 minute interval starting at 17:04:42 is shown
+in Fig. 4, the information of which is used to generate a Doppler time history in Fig. 5. The signal’s instantaneous Doppler f
+d
+
+is calculated using (2), the equation for apparent Doppler given the relative velocity between the SV and the receiver, v ∈ R ,
+
+the signal’s wavelength λ, and the relative distance between the SV and the receiver, r ∈ R .
+
+⊺
+f = − r · v (2)
+d
+λ
+When using estimates provided every 60 seconds, the interpolation between the points may not be accurate if too few points are
+provided. Offering less than 15 minutes of the ephemeris data for interpolation leads to a near-linear or constant Doppler time
+history model. To avoid making assumptions on the Doppler model, the choice will be left to the user. The simulator applies
+a user-provided Doppler time history by generating a phase time history Θ[n] re-sampled at the full channel bandwidth F .
+s
+(cid:82) t
+The phase time history is the discretized version of Θ(t) = f (τ )dτ , using a cumulative sum. Alternatively, the simulator
+d
+
+can intake a constant CFO to apply to the simulated signal for a constant Doppler model.
+
+Fig. 3: Spectrograms of 100 concatenated symbols, with F = 200MHz and F = F (left) and with F = 62.5MHz and
+sr cr c6 sr
+
+F = F − 25 · 10 (right), generated with an SNR of 15dB.
+cr c6
+Fig. 4: Visualization of orbit over receiver location in Austin. Fig. 5: Calculated Doppler to receiver in Austin.
+D. Frame generation
+Generating an entire frame amounts to concatenating symbols generated by Algorithm 1. If the algorithm is used on each
+symbol individually, it may result in artifacts from concatenating symbols in time that were resampled individually. To avoid
+such issues, it is best to resample to F and apply the Doppler time history only after an entire frame is formed.
+sr
+Suppose a desired SNR, Starlink channel center F , receiver center frequency F , receiver sampling rate F , desired Doppler
+c cr sr
+time history, and phase are provided. Further, suppose we can generate the PSS in accordance with [Humphreys et al., 2023]
+and also generate the SSS using Algorithm 1 and the SSS sequence X , both symbols with appropriate noise. After generating
+m1
+the remaining N − 2 symbols with AWGN, we can generate the phase history from the Doppler history, concatenate the
+sf
+symbols in a single vector, append the frame guard and prepend some guard to emulate a delay. Further, we can apply the
+frequency shift F to account for the receiver center frequency, apply the phase history to account for the Doppler, and finally
+cr
+resample at F to account for the receiver sampling rate to form a frame. Algorithm 2 follows this process, as indicated by
+sr
+generating symbols with F , followed by resampling after the concatenation of the symbols.
+s
+The process can be further extended to concatenate frames into streams simulating longer data captures, randomly placing
+frames to emulate the frame pattern of the Starlink downlink signal transmission. For the simulator developed in this paper, a
+binomial random variable is used, even though frames are more likely to appear in bursts rather than as a binomial random
+variable. Notably, we resample to F and applying the Doppler time history only after the stream is formed to avoid any
+sr
+artifacts.
+
+Algorithm 2: genStarlinkFrame(X , SNR, F , F , F , τ , f )
+m c cr sr 0 hist
+N×N
+Input : X ∈ C
+sf
+m
+SNR, F , F , F , τ
+c cr sr 0
+(T F )×1
+f ∈ R
+f s
+hist
+(T +τ )F ×1
+Output: x ∈ C
+f 0 sr
+x = genPSS(SNR, F , F , F )
+
+m0 c s s
+x = genStarlinkOFDM(X , SNR, F , F , F )
+
+m1 m1 c s s
+(cid:112)
+x = AWGN(zeros(F · T , 1), 1/(2SNR))
+
+g s fg
+(cid:112)
+x = AWGN(zeros(F · τ , 1), 1/(2SNR))
+
+lag s 0
+for i = 2 to N − 1
+
+sf
+x ← genStarlinkOFDM(X , SNR, F , F , F )
+
+mi mi c s s
+end
+
+x = [x , x , x , ... , x , x ]
+
+lag m0 m1 mN g
+sf
+ϕ = cumSum(f − f (0))
+
+hist hist hist
+t = [0 : (T + τ )F ] /F
+
+f 0 s s
+x = x ⊙ exp(j2π(F − F )t) ⊙ exp(jϕ )
+
+c cr hist
+x = resample(x, F , F )
+
+s sr
+IV. ACQUISITION AND DETECTION
+Acquisition of the signal can follow two paths: data-aided and non-data-aided. The latter would depend on the cyclic nature of
+the OFDM symbols by correlating the incoming signal with one captured with a T delay, presenting a peak due to the cyclic
+prefix in each symbol. The former depends on knowledge of symbols within the signal to correlate against, namely the PSS
+and SSS. This paper will follow the data-aided approach.
+Acquiring the signal, or obtaining estimates of the TOA and frequency of arrival (FOA), depend on generating a complex
+ambiguity function (CAF). The CAF is parametrized by the frame’s time offset compared to the locally generated symbols,
+and the Doppler frequency.
+After analyzing the statistical properties of the samples generated by the CAF, a standard Neyman-Pearson hypothesis test
+can be used to declare a detection. The coordinates of the detected peak on the CAF reveal the TOA and the effective carrier
+frequency offset (CFO) through the FOA.
+A. Complex Ambiguity Function
+Suppose the received signal y is resampled from the receiver sampling rate F to the full channel bandwidth F , and frequency
+cr s
+shifted to be centered at the closest Starlink channel center F rather than the receiver center frequency F . For some constant
+c cr
+CFO β, the received signal is considered to be:
+(cid:20) (cid:21)
+F
+s
+r = resample(y, F , (1 − β)F ) ⊙ exp (−j2π [(β + 1)F − F ] t) , t = 0, 1, ..., dim(y) /F (3)
+cr s c cr s
+F
+sr
+(4)
+The signal r(n) may be cross correlated with a known sequence, denoted c(n), also sampled at F and centered at F . If c(n)
+s c
+involves non-consecutive symbols, these must be appropriately zero-padded to preserve their relative phase. Let N denote the
+c
+number of non-zero samples in c(n), and let N denote its overall length.
+a
+For arbitrary complex-valued sequences a(n) and b(n), define the correlation function R (k) as
+ab
+N −1
+a
+(cid:88)
+≜ ∗
+R (k) a(n + k)b (n) (5)
+ab
+n=0
+The cross correlation between r(n) and c(n), written as R (k), can be used to estimate the relative time offset τ between
+rc 0
+the two, since the value of k at which a peak appears in R (k) is the sample offset corresponding to τ .
+rc 0
+
+
+
+
+
+
+
+
+-1500 -1000 -500 0 500 1000 1500
+Fdop (KHz)
+|S|
+
+2T =1.8e-05 s
+c
+
+
+
+
+
+
+-8 -6 -4 -2 0 2 4 6 8
+( s)
+|S|
+T
+sym
+Fig. 6: CAF slices at S(f, 0) (left) and S(0, k) (right) using a generated frame with no noise and the PSS and SSS concatenated
+as the known sequence.
+The statistical properties of the known sequence c(n) are as follows:
+E
+[c(n)] = 0, n ∈ [0, N − 1] (6)
+a
+N −1
+c
+(cid:88)
+E E ∗ 2
+[R (0)] = [c(n)c (n)] = N σ (7)
+cc c c
+n=0
+E ∗
+[c(n)c (k)] = 0, n ̸= k (8)
+These properties hold because the complex serial data sequence X is modeled as zero mean with independent and identically
+mik
+
+distributed (iid) elements each having variance σ . To estimate the CFO, we expand the search domain to include β by
+c
+calculating R (k) over different versions of r(n) as given in (3) generated across a range of β values.
+rc
+N −1
+a
+(cid:88)
+∗ ˆ
+S(f, k) = r(n + k) · c (n) · exp(−iθ (n)) (9)
+f
+n=0
+ˆ
+where θ is the estimated to Doppler-introduced phase, a function of f .
+f
+Suppose the received signal is modeled as follows:
+r(n) = A(n)x(n) exp(iθ (n)) + w(n) (10)
+f
+D
+for some time-varying signal amplitude A, and actual carrier phase offset θ along with Gaussian noise w. Here, x(n) is
+f
+D
+the Doppler-corrected, digitized, and resampled version of the signal without noise. Ideally, c(n) makes up a subset of the
+samples in x(n). Since the signal r(n), and thus x(n), will be multiplied with c(n) and coherently summed, the resulting
+sweep over various phase offsets k will result in the autocorrelation of c. Using the fact that the amplitude, signal, and phase
+are uncorrelated, and using an assumption that over the accumulation period the amplitude remains near some average value
+¯
+A, (9) is approximately:
+(cid:34) (cid:35)
+N −1
+1 a
+(cid:88)
+¯
+S(f, k) ≈ AR (k) exp(i∆θ(m)) + n (11)
+xc k
+N
+a
+n=0
+ˆ
+where R (k) is the cross correlation of x and c non-normalized as defined in (5), ∆θ(n) = θ (n) − θ (n), and n =
+xc f f k
+D
+(cid:80) ˆ
+∗
+w(n)c (n) exp(−iθ (n)). It can be shown that the average phasor value is sinc(∆f T ), for ∆f = f − f and T the period
+f c D c
+in seconds corresponding to N [Holmes, 2007].
+c
+Assuming a consecutive sequence is known, the standard analytical equation for a CAF in (12) applies, otherwise a more
+complicated shape with taller sidelobes is evident, though with the same peak value. Using the simulator to generate a frame,
+one can use (9) to generate the CAF. Fig. 6 shows the CAF slices at S(0, k) and S(f, 0) for a frame generated with no Doppler
+or delay.
+¯
+S(f, k) ≈ AR (k)sinc(∆f T ) + n (12)
+xc c k
+
+B. Hypothesis Testing Scenarios
+Suppose we perform the cross correlation as expressed so far. The results of the different R (k) values generated from the
+rc
+different CFOs and time offsets fall into scenarios: (1) only noise, (2) an unaligned signal with additive noise, (3) an aligned
+signal with additive noise. We can represent the detection problem as a 3-case hypothesis test:
+
+w(n), under H
+ 0
+
+r(n) = Ax(n + k) + w(n), under H (13)
+
+
+
+Ax(n) + w(n), under H
+
+2 2
+The noise is distributed as an iid complex Gaussian random process w(n) ∼ CN (0, σ ). The variance σ is the sum of the
+w w
+2 2 2
+real and imaginary variances: σ = σ + σ . In the case where the real and imaginary components are iid, then
+w Re(w) Im(w)
+2 2 2
+σ = σ = σ /2.
+Re(w) Im(w) w
+≜ 2
+The statistic to be used in the hypothesis testing is S |R (k)/σ | , where R (k) is the value of the correlation function
+k rc 0 rc
+from (5) and σ is defined in A-A. Under all hypotheses considered, this involves a sum of N samples of a random variable
+0 c
+∗
+produced by multiplying r(n) with c (n). Due to the central limit theorem (CLT), the result of the sum can be modeled as
+a complex Gaussian random variable (GRV) with an arbitrary angle θ. It can be shown that for a univariate complex GRV
+2 2
+x ∼ CN (0, 1), the magnitude squared follows a Chi Squared distribution with 2 degrees of freedom |x| ∼ X . It is also
+
+known that for a complex x = x + x i with x ∼ N (µ cos(θ), 1) and x ∼ N (µ sin(θ), 1), the magnitude squared follows
+R I R I
+2 2 2 2
+a non-central Chi Squared distribution with two degrees of freedom and a non-central parameter of µ , or |x| ∼ X (µ ).
+
+
+Finally, for a complex GRV x ∼ CN (0, σ ), the magnitude squared follows a gamma distribution with shape parameter 1 and
+2 2 2
+scale parameter σ , or |x| ∼ Γ(1, σ ).
+For the analysis of each scenario, refer to the Appendices A-A, A-B, and A-C, which assume the received signal is originally
+sampled at F . In the case where it is sampled at F and artificially resampled as in (3), then a scaling of F /F s has to
+s sr sr
+propagate through the results to account for a reduction in correlation power since the local replica is now only correlated
+against a received signal with power only within F . The results may be summarized as follows:
+sr
+
+2 2
+ 2 σ σ N F
+2 σ = w c c sr
+X H : no frame 
+  2 0   0 2 F s
+2 2
+S = |R (n)/σ | 2 ∼ Γ(1, 2σ 2 /σ 2 ) H : unaligned where σ 2 = N c σ c σ w (SNR+1) F sr (14)
+k r,c 0 1 0 1 1 2 F
+s
+  (cid:16) (cid:17)2
+ X 2 (λ) H : aligned  N Aσ 2 F
+2 2 λ = c c sr
+σ F
+0 s
+The three scenarios are clearly visible in Fig. 7, which is the cross-correlation of the Doppler-corrected signal with the local
+replica, a slice of the CAF along the frequency-maximizing value. The peak is H , the lower noise floor is H , and the raised
+2 0
+noise floor is H . A detection for purposes of TOA estimation falls under the third scenario, H , while a detection of a frame
+1 2
+falls under the second or third scenarios. The parameters describing the distributions for the statistic S are the noise variance
+k
+2 2 2
+σ , signal power P = A , the non-zero known portion variance σ and non-zero known portion length N .
+w s c c
+Once a peak is identified corresponding to the local replica in the received signal, the post-correlation SNR of that peak can
+directly lead to an estimate of the pre-correlation SNR with the following relationship:
+SNR
+post
+SNR = (15)
+σ2N F /F
+c c sr s
+One can choose a threshold to meet a false alarm probability for H that will encompass samples from H . This is clearly
+1 0
+visible in Fig. 7, where the threshold based on H is lower than that based on H . The hypothesis test can be re-framed
+0 1
+as a binary hypothesis test. If the threshold based on H is chosen, the raised noise floor samples from H would trigger a
+0 1
+detection. In the case where the statistic to be compared to the threshold is the maximum over the CAF generated from and
+interval, this will almost always be the peak but may also be triggered by the raised noise floor under low SNR scenarios.
+If the threshold based on H is chosen, the raised noise floor samples from H no longer count as a detection. This second
+1 1
+case can be more useful, since once it is determined, the threshold can be applied to the output of a matched filter of the
+Doppler-corrected received signal with the local replica. An important note here is, for low SNR, the two noise floors converge
+making the choice moot since the thresholds also converge.
+
+C. Probability of Detection
+The probability of detection P depends on the false alarm probability we are willing to accept. To be explicit about the false
+D
+alarm probability, consider the probability of false alarm P of a single cell in the CAF, and the probability of false alarm
+f
+cell
+over the entire CAF P , where
+f
+N
+P = 1 − (1 − P ) grid
+f f
+cell
+over a grid of size N of TOA and FOA pairs [Borio et al., 2008]. The threshold value is then found from the inverse
+grid
+cumulative distribution function of the Chi Squared distribution for H or the Gamma distribution for H from (14) using
+0 1
+∗
+P . The choice of distributions is based on the discussion in Sec. IV-B on the two thresholds. Values above the threshold s
+f
+cell
+are deemed detections; values below the threshold are not.
+∗ −1
+s = F (P ) (16)
+f
+i
+cell
+−1
+In (16) above, F is the inverse cumulative distribution function determined by the hypothesis H . Fig. 7 showcases the two
+i
+i
+thresholds that can be chosen, where the lower threshold was generated based on the Chi Squared distribution for H and the
+
+higher threshold was generated based on the Gamma distribution for H .
+
+The probability of detection will vary based on our choice of threshold, and thus definition of a true detection. Choosing the
+∗
+H threshold s implies we accept all H samples as true detections along with the H samples. Choosing the H threshold
+0 0 1 2 1
+∗
+s implies we only accept the H samples as true detections. The H samples previously accepted as detections are now false
+1 2 1
+alarms.
+Another factor in determining the probability of detection is how we choose the statistic to be compared against the threshold.
+A typical way, and one also discussed in [Borio et al., 2008], is to choose a maximum over a set of samples. In the H
+
+threshold case, this implies the probability of detection is simply based on the inverse CDF of the non-central Chi Squared
+distribution. In the H threshold case, the process is slightly more complicated, as now a true detection will occur if any of
+
+the H samples or the single H sample from the CAF exceed the threshold. Using the complement rule, and approximating
+1 2
+the CAF samples as iid, we can form the probability of detection as follows:
+(cid:40)
+N
+∗ ∗ ∗ ∗
+1 − F (s ) [F (s )] H , s = s
+
+2 1 0
+P = (17)
+D
+∗ ∗ ∗
+1 − F (s ) , s = s
+2 1
+√ √
+where F (s ∗ ) = Q ( λ, s∗) is the Marcum Q-function of order 1, F (s ∗ ) is the CDF of the Gamma distribution, and N
+2 1 1 H
+
+is the number of H samples in the CAF.
+
+With the process as described, an extension for non-coherent summations of statistics becomes trivial. For N non-coherent
+ncs
+summations, the simplified 2-case hypothesis test for each of the two definitions of a detection now follow that of (18).
+Fig. 7: Figure of the two thresholds that can be chosen, using a generated frame against a known sequence of the PSS and
+SSS concatenated at 5 dB SNR and F = 62.5 MHz.
+sr
+
+Fig. 8: Histogram of statistic generated from 500 frames for Fig. 9: Acquisition and tracking of Doppler of 100 consecutive
+each scenario, at 0 dB SNR with coherent integration over a simulated Starlink frames using true ephemerides.
+single frame, overlaid by their theoretical distributions.
+(cid:40) (cid:40)
+N
+ncs X 2 Γ(N , 2σ 2 /σ 2 ) H ′ : no detection
+(cid:88)
+2·N ncs 1 0 0
+Z = S ∼ ncs or (18)
+k
+2 2 ′
+X (λ · N ) X (λ · N ) H : detection
+2·N ncs 2·N ncs 1
+k=1 ncs ncs
+The threshold and probability of detection are also trivially extendable since, for example, the CDF of the non-central Chi-
+Squared simply adapts the Marcum Q-function order to N . Similarly, the Gamma distribution’s shape parameter becomes
+ncs
+N .
+ncs
+V. RESULTS
+To showcase the utility of the simulator and the accompanying tools, this section will show : (1) the hypothesis testing scenario
+distributions from generated CAFs, (2) a Doppler-time history generated from a simulated capture, (3) a P vs SNR plots
+D
+under various scenarios, and (4) detection of a captured signals.
+A. Simulated Results
+To verify the simulator follows the ideas presented in this paper, a variety of scenarios are generated. First, to confirm the
+distributions of samples from the CAF described in Sec. IV-B, a number of values representing the statistic S from (14) are
+k
+generated. These statistic values are generated using simulated frames under H , H , and H with the local replica consisting of
+0 1 2
+just the PSS and SSS as in (9). The normalized histogram of the statistic under each scenario is found to match the theoretical
+distributions from (14) in Fig. 8, and holds for any SNR and F values.
+sr
+Next, to showcase the applied Doppler-time history, we generate a capture using a Doppler-time history derived from estimates
+of Starlink’s satellite positions. The ephemeris data are from the segment mentioned in Section III-C. The generated capture
+consists of 100 consecutive generated frames. To confirm the frames follow the provided Doppler-time history, the capture is
+segmented in blocks lasting T . A CAF is generated for each block to estimate the Doppler frequency. Fig. 9 shows the
+sym
+Doppler frequency estimates sampled at each block overlaying the input Doppler time history.
+B. Signal Detection Sensitivity
+Based on the results in Sec. IV, we can explore the probability of detection of a frame for various SNRs. To confirm the
+theoretical P vs SNR equation in (17), we can run a Monte-Carlo simulation by generating 500 frames, each time sweeping
+D
+∗
+over different SNRs and tallying up the detections. For this simulation, we are using the conservative threshold s discussed
+
+−8
+in Sec. IV-C, with P = 10 . Fig. 10 shows the curves for various coherent integration periods, dictated by the number of
+f
+cell
+known symbols in the local replica. Notably, doubling the integration period results in a 3 dB decrease in the minimum SNR
+required to detect the frame, for the same P . A welcome result is that for a P = 0.95, and just the PSS, we can detect
+D D
+frames as low as −15.7 dB for received signals sampled at F .
+s
+Next, we can check how non-coherently summing statistics will affect the P . This time, summing up 2 consecutive statistics
+D
+from the simulation, results in the curves in Fig. 11, also matching the theoretical curve. A notable result here is the decrease
+
+in minimum SNR by 2.6 dB compared to the single integration period with the same local replica. These curves also assume
+a received signal sampled to view an entire channel.
+One variation to the simulation is a signal sampled at F . This results in an increase in the minimum SNR due to a decrease
+sr
+in the correlation power of the narrower band signal against the full band local replica. The shift in the curve is roughly equal
+to the ratio F /F , resulting in an increase of approximately −10 log(F /F ) dB depending on how well the signal is filtered,
+sr s sr s
+or on the user’s knowledge on the filter’s shape.
+∗ ∗
+Another variation is running the simulation with the more lenient threshold s . For a generated signal sampled at F , the s
+0 s 0
+threshold only results in about a 0.1 dB decrease in the minimum SNR. Fig. 12 showcases the scenario of a signal sampled
+at F with both thresholds, showing roughly a 0.2 dB decrease in the minimum SNR. Fig. 12 also shows the increase of
+sr
+−10 log(F /F ) dB when compared to the F curve for 2 known symbols in Fig. 10.
+sr s s
+The misalignment with the theoretical curves in Fig. 12 is due to non-ideal filtering causing the simulated H sample values
+
+∗
+presenting as lower than expected. The even-further misalignment from the theoretical curve for the s curve is further
+
+attributed to the faulty assumption of iid H samples. The process resamples the received signal back to F , introducing
+1 s
+correlation between samples. If any of the samples tend to be higher, then the surrounding H samples also tend to be higher,
+
+leading to a higher P . Additionally, calculating the P under this case requires the expected number of H samples from
+D D 2
+(17). The analytical solution for P can then at least be thought of as a lower bound, as added information could refine the
+D
+bound.
+C. Empirical Results
+We collected data using hardware and software described in [Qin et al., 2023] to evaluate the tools from this paper, as well
+as note some differences. One indication of the simulator’s frame working properly is by comparing the autocorrelation of
+an empirical and simulated frame. Fig. 13 shows that the autocorrelation matches the empirical one. A similar comparison is
+made in [Humphreys et al., 2023], where the empirical autocorrelation suffered from additional correlation caused by aliasing
+noise in the captures, shown in Fig. 3 of that paper. Once the aliasing is removed, the autocorrelation yields the tighter patterns
+shown in Fig. 13 of this paper.
+Recently, in [Bla´zquez-Garc´ıa et al., 2023] and [Qin et al., 2023], the notion of a fixed interval over which satellites are
+guaranteed to have a fixed beam is introduced. This fixed assignment interval (FAI) seems to last around 15 seconds. The
+simulator does not incorporate this observation in its capture generation. Additionally, the implication that side-beams from
+a SV intended for neighboring cells could be exploited for TOA measurements is not something the simulator can generate
+automatically. These side-beams arrive at different power levels and timing compared to the assigned-beam. This is not a
+limitation of the simulator, however, since it could be used over multiple runs to generate signals of varying power and timing
+which the user can add together to emulate the empirical captures.
+Fig. 10: Analytical (solid) and simulated (dashed) PD vs SNR Fig. 11: Analytical (solid) and simulated (dashed) PD vs SNR
+curves with coherent integration over a single frame for various curves with N non-coherently summed coherent integrations
+ncs
+quantities of known symbols. over a single frame for various quantities of known symbols.
+
+Fig. 12: Analytical (solid) and simulated (dashed) PD vs SNR curve with coherent integration over a single frame for the PSS
+∗ ∗
+and SSS with F = 62.5 MHz filtered to 53.12 MHz using s (left) and s (right). The theoretical minimum SNR to detect
+sr 1 0
+a frame at P = 0.95 for each is displayed on the figure.
+D
+The presence of the side-beams cause implication in the simulator and analysis in the form of assumptions about the lower
+floor. As mentioned in previous sections, the lower noise floor can help determine the pre-correlation SNR, and can also be
+used to estimate the noise variance – a necessary estimate for the threshold. Imagine a scenario like that depicted in Fig 7,
+in which there is a clear lower noise floor before a frame. If that floor includes a lower-power side-beams the pre-correlation
+SNR estimate, and thus the probability of detection, would be affected.
+Fig. 14 is the real world example of the simulated version of Fig 7. Using the first T of the interval shown, we can find an
+f
+estimate of the Doppler to apply to the rest of the data. Correlating the Doppler-corrected data with the PSS and SSS results
+in easily distinguishable frames, especially with our H threshold. An example of the difference with the simulated signal
+
+lies perfectly at 0.01 s into the interval, where a lower-power peak is present. This does not meet the higher threshold, even
+though it is most likely a frame observed from a side-beam. This presents the issue of having to recalculate the H threshold
+
+for each interval, since the SNR estimate may drastically change due to the assigned-beam or side-beam ambiguity. Fig. 15
+provides an empirical example of stronger side-beams that end up meeting the H threshold.
+
+The issue of timing is also possibly present in Fig. 14, as the peak between 0.004 s and 0.006 s is another possible side-beam
+with a timing offset away from a multiple of the assigned beam. Based on the peak of the presumed assigned beam frames
+and the noise floor, the SNR in Fig. 14 is around 0.4 dB, while for the side-beam at 0.01 seconds is around −14.5 dB. In
+Fig 15 the assigned beams are around 0.7 dB SNR, while the side-beams are around −4.81 dB. For our receiver sampling
+−8
+rate around 62.5 MHz, and a P = 10 , the probability of detection with 2 symbols at −14.5 dB is 0.48, which seems
+f
+cell
+reasonable for the side-beams from Fig. 14 teetering around the H threshold.
+
+VI. CONCLUSION
+With the work from this paper, a Starlink Ku-band downlink signal that meets all currently known criteria in terms of signal
+structure and channel effects can easily be generated. Further, the acquisition analysis and procedure applied to simulated and
+empirical signals in this paper enable further study of Starlink’s downlink signal. Using the ephemeris intake capability of the
+University of Texas Starlink Signal Simulator, one can study obtaining pseudoranges through simulation. Finally, this paper
+demonstrated detection of a real Starlink signal as low as -14.5 dB. For convenience, a MATLAB based implementation of
+the simulator is available at https://gitlab.com/radionavlab/public.
+ACKNOWLEDGMENTS
+Research was sponsored by the U.S. Department of Transportation (USDOT) under the University Transportation Center (UTC)
+Program (CARMEN+), and by affiliates of the 6G@UT center within the Wireless Networking and Communications Group
+at The University of Texas at Austin.
+
+Fig. 13: Normalized cyclic autocorrelation function at α = 0 Fig. 14: Correlation of empirical Starlink data against a local
+for an empirical Starlink signal (blue), and for a simulated PSS and SSS replica after Doppler compensation.
+frame with iid Gaussian 4QAM symbols (gray).
+Fig. 15: Correlation of empirical Starlink data against a local PSS and SSS replica after Doppler compensation.
+A A
+PPENDIX
+HYPOTHESIS TESTING SCENARIO STATISTICAL ANALYSIS
+A. Null Hypothesis
+As expressed in (13), the null hypothesis H assumes that r(n) = w(n) for n ∈ [0, N − 1]. The mean and variance of the
+0 a
+∗
+random variable resulting from multiplying r(n) with c (n) provide the parameters to describe the complex GRV resulting
+from the sum of N such random variables. For n ∈ [0, N − 1], these are
+c a
+E ∗
+µ = [r(n)c (n)] = 0 (19)
+rc
+2 E ∗ ∗ ∗ E ∗ 2
+σ = [(w(n)c (n))(w(n)c (n)) ] − | [w(n)c (n)] |
+rc
+E ∗ E ∗ 2 2
+= [w(n)w (n)] [c(n)c (n)] = σ σ (20)
+w c
+2 2
+σ σ N
+2 2 ≜ w c c 2
+Thus, for all k under H , R (k) ∼ N (0, N σ ). If we define σ , then the statistic S = |R (k)/σ | follows
+0 rc c rc 0 k rc 0
+
+
+a Chi Squared distribution, or S ∼ X .
+k 2
+
+B. Hypothesis H
+
+Under H we assume r(n) = Ax(n + k) + w(n). The process of determining the detection statistic distribution is equivalent
+
+∗
+to that for H except for the variance of the random variable resulting from the multiplication of r(n) and c (n). In practice,
+
+for a very low SNR, the additional variance introduced by the signal’s presence is negligible.
+E ∗
+µ = [r(n)c (n)] = 0 (21)
+rc
+2 E ∗ ∗ ∗
+σ = [(r(n)c (n))(r(n)c (n)) ] (22)
+rc
+2E ∗ E ∗
+= A [x(n)x (n)] [c(n)c (n)]
+E ∗ E ∗
++ [w(n)w (n)] [c(n)c (n)]
+(cid:18) (cid:19)
+P
+s
+2 2 2 2 2
+= P σ + σ σ = σ σ + 1
+s c w c c w
+σ2
+w
+
+In (22), P denotes the power of the received signal without the noise. Identically to the H case, R (k) ∼ N (0, N σ ) due
+s 0 rc c rc
+2 2
+to the CLT, but with a different expression for σ . The statistic S = |R (k)/σ | is now gamma distributed, due to the
+rc k rc 0
+variance not being 1:
+2 2 2 2 2
+(P σ + σ σ )N σ σ N
+2 2 2 s c w c c 2 w c c
+S ∼ Γ(1, 2σ /σ ) where σ = and σ = (23)
+k 1 0 1 0
+2 2
+C. Hypothesis H
+
+Under H we assume r(n) = Ax(n) + w(n). The novelty of this hypothesis is that x(n) contains some scaled version of our
+
+∗
+locally-generated signal c. The resulting sum of samples between x(n) and c (n) will be no different from the sum of the
+∗
+multiplication of c(n) with c (n) due to the zeroed-out portions of our local c(n). A simplification can thus be made to view
+r(n) = Ac(n) + w(n).
+∗
+Since the resulting cross correlation will include the sum of c(n)c (n), the mean value of the cross correlation will be biased
+away from zero on the real dimension. This is shown in (24) below.
+(cid:34) (cid:35)
+N −k−1
+a
+(cid:88)
+E E ∗
+µ = [R (k)] = r(n)c (n)
+R rc
+n=k
+N −1
+a
+(cid:88)
+E ∗ 2
+= [Ac(k)c (k)] = N Aσ (24)
+c c
+n=k
+To express the variance, it is useful to first express the second moment of the cross correlation:
+(cid:34)(cid:32) (cid:33)
+N −k−1
+a
+(cid:88)
+E ∗ E 2 ∗
+[R (k)R (k)] = N Aσ + w(n)c (n) (25)
+rc rc c c
+n=k
+ ∗
+N −j−1
+a
+(cid:88)
+2 ∗
+× N Aσ + w(j)c (j)
+  
+c c
+j=k
+The sum of the product of the noise and local replica samples present in the second portion above is no different from H
+
+
+except that there is a bias term N Aσ in the real dimension. This means that both unevaluated sums above form a GRV with
+c c
+2 2
+zero mean and variance σ , identical to the result from Appendix A-A with a mean of N Aσ . To show the variance is in
+0 c c
+
+fact the same as for H , it is beneficial to observe the real and imaginary variances separately, the sum of which result in the
+
+complex random variable’s variance:
+(cid:2) (cid:3)
+2 E 2
+σ = Im(R (k)) (26)
+rc
+Im(R)
+ 
+(cid:32) (cid:33)2
+N −k−1
+a σ 2 σ 2 N
+(cid:88)
+E ∗ w c c
+= Im( w(n)c (n)) =
+ 
+
+n=k
+(cid:2) (cid:3)
+2 E 2 2
+σ = Re(R (k)) − [Re(µ )] (27)
+rc R
+Re(R)
+ 
+(cid:32) (cid:32) (cid:33)(cid:33)2
+N −1
+a
+(cid:88)
+E 2 ∗
+= Re N Aσ + w(n)c (n)
+ 
+c c
+n=k
+(cid:0) (cid:1)2
+
+− N Aσ
+c c
+2 2 2 2
+σ σ N σ σ N
+w c c 2 2 2 2 w c c
+= + (N Aσ ) − (N Aσ ) =
+c c c c
+2 2
+2 2 2
+The result is that R (k) ∼ N (µ , σ + σ ). The result of taking S = |R (τ )/σ | is a non-central Chi Squared
+rc R k rc 0
+Re(R) Im(R)
+
+distribution, or S ∼ X (λ), instead of the Chi Squared distribution from H due to the non-zero mean.
+k 2 0
+
+S ∼ X (λ)
+k 2
+(cid:18) (cid:19)2
+2 2 2 (28)
+N Aσ σ σ N
+c c 2 w c c
+where λ = and σ =
+
+σ 2
+
+REFERENCES
+[Sta, 2023] (2023). Starlink operators page. https://www.starlink.com/satellite-operators. Accessed: 2023-04-14.
+[Bla´zquez-Garc´ıa et al., 2023] Bla´zquez-Garc´ıa, R., Cristallini, D., Ummenhofer, M., Seidel, V., Heckenbach, J., and O’Hagan, D. (2023). Capabilities and
+challenges of passive radar systems based on broadband low-earth orbit communication satellites. IET Radar, Sonar & Navigation, n/a(n/a).
+[Borio et al., 2008] Borio, D., Camoriano, L., and Lo Presti, L. (2008). Impact of GPS acquisition strategy on decision probabilities. IEEE Transactions on
+Aerospace and Electronic Systems, 44(3):996–1011.
+[Du et al., 2021] Du, X., Song, T., Li, Y., Wu, M.-W., and Kam, P.-Y. (2021). An optimum signal detection approach to the joint ml estimation of timing
+offset, carrier frequency and phase offset for coherent optical ofdm. Journal of Lightwave Technology, 39(6):1629–1644.
+[Holmes, 2007] Holmes, J. K. (2007). Spread Spectrum Systems for GNSS and Wireless Communications. Artech House, 1st ed. edition.
+[Humphreys et al., 2023] Humphreys, T. E., Iannucci, P. A., Komodromos, Z. M., and Graff, A. M. (2023). Signal structure of the Starlink Ku-band downlink.
+IEEE Transactions on Aerospace and Electronic Systems, pages 1–16.
+[Iannucci and Humphreys, 2020] Iannucci, P. A. and Humphreys, T. E. (2020). Economical fused LEO GNSS. In Proceedings of the IEEE/ION PLANS
+Meeting.
+[Iannucci and Humphreys, 2022] Iannucci, P. A. and Humphreys, T. E. (2022). Fused low-earth-orbit GNSS. IEEE Transactions on Aerospace and Electronic
+Systems, pages 1–1.
+[Jardak and Adam, 2023] Jardak, N. and Adam, R. (2023). Practical use of Starlink downlink tones for positioning. Sensors, 23(6):3234.
+[Khalife et al., 2022] Khalife, J., Neinavaie, M., and Kassas, Z. M. (2022). The first carrier phase tracking and positioning results with Starlink LEO satellite
+signals. IEEE Transactions on Aerospace and Electronic Systems, 58(2):1487–1491.
+[Neinavaie and Kassas, 2022] Neinavaie, M. and Kassas, Z. M. (2022). Unveiling beamforming strategies of Starlink LEO satellites. In Proceedings of the
+ION International Technical Meeting.
+[Neinavaie et al., 2021] Neinavaie, M., Khalife, J., and Kassas, Z. M. (2021). Exploiting Starlink signals for navigation: First results. In Proceedings of the
+ION GNSS+ Meeting, pages 2766–2773, St. Louis, Missouri.
+[Neinavaie et al., 2022] Neinavaie, M., Khalife, J., and Kassas, Z. M. (2022). Acquisition, doppler tracking, and positioning with Starlink LEO satellites:
+First results. IEEE Transactions on Aerospace and Electronic Systems, 58(3):2606–2610.
+[Okati and Riihonen, 2022] Okati, N. and Riihonen, T. (2022). Nonhomogeneous stochastic geometry analysis of massive LEO communication constellations.
+IEEE transactions on communications, 70(3):1848–1860.
+[Psiaki, 2021] Psiaki, M. L. (2021). Navigation using carrier Doppler shift from a LEO constellation: TRANSIT on steroids. NAVIGATION, 68(3):621–641.
+[Qin et al., 2023] Qin, W., Komodromos, Z. M., and Humphreys, T. E. (2023). An agile, portable antenna system for LEO megaconstellation-based PNT.
+In Proceedings of the ION GNSS+ Meeting.
+[Reid et al., 2020] Reid, T. G. R., Walter, T., Enge, P. K., Lawrence, D., Cobb, S., Gutt, G., O’Connor, M., and Whelan, D. (2020). Position, Navigation,
+and Timing Technologies in the 21st Century: Integrated Satellite Navigation, Sensor Systems, and Civil Applications, volume 1, chapter Navigation from
+Low Earth Orbit: Part 1: Concept, Capability, and Future Promise., pages 1359–1380. Wiley-IEEE.
+[SpaceX, 2021] SpaceX (2021). Revised SpaceX Gen2 non-geostationary satellite system, Technical Attachment. https://licensing.fcc.gov/myibfs/download.
+do?attachment key=12943362. SAT-AMD-20210818-00105.
+[Xu, 2014] Xu, W. (2014). Sensing of OFDM signals in cognitive radio systems with time domain cross-correlation. ETRI Journal, 36(4):545–553.

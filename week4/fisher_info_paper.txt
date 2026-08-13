@@ -1,0 +1,1960 @@
+IEEE TRANSACTIONS ON INFORMATION FORENSICS AND SECURITY
+Fisher Information L
+Fingerprint Identifiabil
+Haofan Dong, Student Member, IEEE
+Abstract—RF fingerprinting authenticates satellite transmit-
+ters by exploiting hardware-specific signal impairments, yet
+existing methods operate without theoretical performance guar-
+antees. We derive the Fisher information matrix (FIM) for joint
+estimation of IQ imbalance and power amplifier (PA) non-
+linearity parameters, establishing Crame´r-Rao bounds (CRBs)
+whose structure depends on constellation moments. A necessary
+E 2 2
+condition for full IQ identifiability is β = 1 − | [x ]| > 0;
+setting β = 0 for BPSK yields a rank-deficient FIM, showing
+that IQ imbalance parameters are unidentifiable from binary-
+modulated signals. This provides a plausible theoretical expla-
+nation for OrbID’s AUC = 0.53 on Orbcomm. From the FIM,
+we define an identifiability-induced discrimination metric that
+predicts which hardware parameters dominate authentication for
+a given modulation format. For constant-modulus PSK signals,
+the analysis predicts that PA nonlinearity features dominate while
+IQ imbalance features are ineffective. We validate the framework
+on 24 Iridium satellites using two recording campaigns, achieving
+cross-file fingerprint correlation r = 0.999 for PA features
+and confirming all four CRB predictions against empirical
+discrimination ratios. A DR-weighted authentication test achieves
+AUC = 0.934 from six features versus 0.807 with equal weighting,
+outperforming ML classifiers (AUC ≤ 0.69) on the same data.
+Index Terms—Crame´r-Rao bound, Fisher information, RF fin-
+gerprinting, satellite authentication, hardware impairments, IQ
+imbalance, power amplifier nonlinearity, physical-layer security.
+I. I
+NTRODUCTION
+Low Earth orbit (LEO) mega-constellations form critical in-
+frastructure for global communications, navigation, and remote
+sensing. An adversary who impersonates a legitimate satellite
+can inject false data, intercept traffic, or disrupt service [1],
+[2]. Cryptographic authentication mitigates these threats in
+principle, but key management across hundreds of orbiting
+nodes remains an open challenge [3]. RF fingerprinting offers
+a complementary defense by exploiting the unique hardware
+signature that each satellite’s RF chain imprints onto the
+transmitted signal [4].
+Recent deep-learning methods have demonstrated satellite
+RF fingerprinting on Iridium [5]–[7], yet OrbID [8] obtains
+near-random performance (AUC = 0.53) on Orbcomm with
+no explanation for the failure. Recent TIFS work has advanced
+RFFI modeling [9], [10] and robustness [11]–[13], but these
+methods share a common limitation: no estimation-theoretic
+H. Dong and O. B. Akan are with the Internet of Everything Group,
+Department of Engineering, University of Cambridge, CB3 0FA Cambridge,
+U.K.(e-mail: hd489@cam.ac.uk, oba21@cam.ac.uk)
+O. B. Akan is also with the Center for neXt-generation Communications
+(CXC), Department of Electrical and Electronics Engineering, Koc¸ University,
+34450 Istanbul, Turkey.
+6202
+raM
+13
+]PS.ssee[
+1v66792.3062:viXra
+1
+Limits of Satellite RF
+lity for Authentication
+E, and Ozgur B. Akan, Fellow, IEEE
+framework connects signal parameters to authentication per-
+formance. Zhang et al. [14] identify the absence of verifiable
+accuracy guarantees as a persistent gap, echoing a call by
+Polak et al. [4] over a decade ago. In related domains, CRB-
+based analysis has been used to link parameter estimation
+accuracy to authentication performance: Zhang et al. [15] de-
+rived closed-form detection probabilities from channel/phase-
+noise estimation covariance in massive MIMO, and Liu et
+al. [16] extended this approach to mmWave using the posterior
+Bayesian CRB. However, no prior work derives the CRB for
+hardware impairment parameters in the context of RF fin-
+gerprinting, nor establishes modulation-dependent conditions
+determining whether fingerprinting is feasible or impossible.
+This paper makes four contributions:
+1) A closed-form FIM for joint IQ imbalance and PA non-
+linearity estimation (Theorem 1), revealing the identifi-
+E 2 2
+ability factor β = 1 − | [x ]| as a necessary condition
+for IQ parameter recovery.
+2) A rank-deficiency result for binary modulations (Propo-
+sition 1): the FIM has rank at most 2, rendering IQ
+parameters unidentifiable and providing a plausible ex-
+planation for OrbID’s AUC = 0.53 on Orbcomm.
+3) A CRB-induced discrimination metric that predicts
+which hardware parameters dominate authentication,
+validated on 24 Iridium satellites (cross-file PA corre-
+lation r = 0.999, all four predictions confirmed).
+4) An identifiability-weighted authentication test (Algo-
+2
+rithm 1) achieving AUC = 0.934 via DR -weighted
+scoring, outperforming equal weighting (0.807) and ML
+baselines (≤ 0.69).
+Section II reviews related work. Sections III–IV present
+the system model and CRB derivation. Section V establishes
+identifiability conditions and the discrimination bound. Sec-
+tions VI–VII describe estimation, experimental validation, and
+the proposed authentication algorithm. Section VIII discusses
+implications, and Section IX concludes.
+II. R W
+ELATED ORK
+A. RF Fingerprinting
+RF fingerprinting exploits manufacturing-induced hardware
+imperfections to identify transmitters without cryptographic
+credentials [4]. Terrestrial systems have been demonstrated
+for WiFi [17], LoRa [11], [12], [18], ADS-B [19], and
+IoT devices [20], [21], with recent TIFS work advancing
+analytical HWI models [9], [10] and channel-robust DL-
+based fingerprinting [13]. A common limitation is the absence
+of theoretical performance bounds: no framework predicts
+IEEE TRANSACTIONS ON INFORMATION FORENSICS AND SECURITY
+Fig. 1. System overview of CRB-based satellite RF fingerprinting. Each sa
+T
+distortions parameterized by θ = [ε , φ , Re(α ), Im(α )] . The grou
+k k k 3,k 3,k
+FIM-induced discrimination metric to authenticate transmitters.
+whether a given hardware parameter is identifiable or which
+parameters dominate discrimination. Senigagliesi et al. [22]
+showed that statistical hypothesis testing can match or exceed
+ML for channel-based authentication, providing precedent for
+parametric approaches.
+Satellite RF fingerprinting poses distinct challenges: Rician
+fading (K-factor 10–20 dB), Doppler shifts up to ±36 kHz,
+and tighter manufacturing tolerances [23], [24]. SatIQ [5],
+[6] achieves AUC = 0.960 on 66 Iridium satellites using
+oversampled IQ [25]. PAST-AI [7] trains a CNN on symbol-
+rate IQ from gr-iridium [26]. OrbID [8] extends SatIQ to
+Orbcomm (SDPSK) but achieves only AUC = 0.53, a failure
+unexplained by the authors. Topal and Karabulut Kurt [27]
+proposed Doppler-based PLA, but Doppler features are ex-
+trinsic (channel-dependent) rather than intrinsic (hardware-
+dependent).
+B. CRB for Hardware Impairment Estimation
+The Crame´r-Rao bound provides a fundamental lower limit
+on the variance of any unbiased estimator [28]–[30]. CRBs
+have been derived for channel estimation under hardware
+impairments [31], [32], IQ imbalance compensation [33], and
+PA model identification [34], [35]. However, these works
+treat hardware impairments as nuisance parameters to be
+compensated, not as fingerprint features to be discriminated.
+In the authentication context, hypothesis-testing-based PLA
+has been studied for channel features: Xie et al. [36] com-
+bined multiple channel-based features via composite hypoth-
+esis testing; Zhang et al. [15] derived closed-form detection
+probabilities from channel gain and phase noise estimation
+covariance in massive MIMO; and Liu et al. [16] linked
+the posterior Bayesian CRB to mmWave PLA performance.
+2
+atellite’s RF chain (IQ mixer → PA → antenna) introduces hardware-specific
+und receiver extracts HWI features from the received IQ signal and uses the
+Hanna and Cabric [37] demonstrated that PA nonlinearity
+coefficients vary sufficiently across devices for identification,
+but did not derive estimation bounds. These works establish
+the paradigm of connecting parameter estimation precision
+to authentication performance [38], following the classical
+identifiability framework [39], [40].
+The recent TIFS survey by Zhang et al. [14] catalogues sig-
+nal models and DL architectures but identifies no estimation-
+theoretic performance bounds for RF fingerprinting—the gap
+addressed in this paper.
+C. Threat Model and Adversary Capabilities
+LEO mega-constellations face an expanding threat surface
+including eavesdropping, jamming, and identity spoofing [1].
+We consider a physical-layer authentication scenario in which
+a ground verifier must determine whether a received satellite
+signal originates from a legitimate transmitter or an adversary.
+Adversary model. The adversary controls a transmitter ca-
+pable of generating arbitrary baseband signals at the satellite
+frequency band. The adversary may (i) eavesdrop on legitimate
+satellite transmissions, (ii) obtain commercially available RF
+components of the same type, and (iii) attempt to replicate
+a specific satellite’s fingerprint θ . However, the adversary
+k
+cannot physically access the space-qualified RF chain of a spe-
+cific satellite to measure its exact hardware parameters. This
+reflects the practical reality that orbital assets are physically
+inaccessible.
+Attack taxonomy. We focus on impersonation attacks
+2
+(θ ̸= θ ), where detection difficulty scales with d (The-
+adv k
+orem 2). Replay and hardware-cloning attacks are outside
+the present scope. The CRB predicts the minimum detectable
+(cid:112)
+difference: |∆θ | > CRB(θ ) suffices for discrimination.
+i i
+IEEE TRANSACTIONS ON INFORMATION FORENSICS AND SECURITY
+III. S M
+YSTEM ODEL
+A. Transmitted Signal
+We consider a satellite downlink transmission where the
+baseband signal at the output of an ideal transmitter is
+(cid:88)
+s(n) = a g(n − kT ), n = 0, 1, . . . , N − 1, (1)
+k s
+k
+where a ∈ A denotes the k-th transmitted symbol drawn
+k
+from constellation A, g(·) is the pulse-shaping filter, and T
+s
+is the symbol period. For Iridium, the modulation is DQPSK
+√
+with A = {(±1 ± j)/ 2}, the pulse shape is a square-root
+raised cosine (SRRC) with roll-off factor α = 0.4, and the
+symbol rate is R = 25 ksps [41], [42].
+s
+Each Iridium Ring Alert (IRA) burst contains N = 64
+pre
+unmodulated preamble symbols followed by N = 12 BPSK
+uw
+unique-word symbols with the fixed pattern 0x789, giving
+N = 76 known symbols per burst.
+known
+B. Hardware Impairment Model
+The transmitted signal passes through the satellite’s RF
+chain, which introduces hardware-specific impairments. We
+model two dominant sources: IQ mixer imbalance and power
+amplifier (PA) nonlinearity.
+IQ imbalance. An imperfect IQ mixer produces the distorted
+signal
+∗
+x (n) = K x(n) + K x (n), (2)
+IQ 1 2
+where x(n) denotes the ideal baseband symbol, and the IQ
+imbalance coefficients are [31], [33]
+jφ −jφ
+1 + (1 + ε)e 1 − (1 + ε)e
+K = , K = , (3)
+1 2
+2 2
+with ε denoting the gain imbalance and φ denoting the phase
+imbalance. For an ideal mixer, ε = 0 and φ = 0, yielding
+K = 1 and K = 0.
+1 2
+PA nonlinearity. The PA output is modeled by a memoryless
+polynomial [34], [35]
+2
+y(n) = α x (n) + α |x (n)| x (n), (4)
+1 IQ 3 IQ IQ
+where α is the linear gain (absorbed into the channel coeffi-
+1
+cient below) and α is the third-order nonlinearity coefficient.
+3
+4 2
+The fifth-order term α |x | x is omitted because |x (n)|
+5 IQ IQ IQ
+is approximately constant for PSK, making α and α con-
+5 3
+founded (Jacobian column correlation exceeding 0.999). For
+QAM, the confounding is reduced; the QAM predictions
+assume the third-order model.
+C. Received Signal Model
+The received signal after propagation through a flat-fading
+satellite channel is
+(cid:2) (cid:3)
+∗ 2
+r(n) = h K x(n) + K x (n) + α |x (n)| x (n) +w(n),
+1 2 3 IQ IQ
+(5)
+C
+where h ∈ is the channel coefficient (incorporating path
+2
+loss, Rician fading, and linear gain α ) and w(n) ∼ CN (0, σ )
+1
+is additive white Gaussian noise. The parameter vector to be
+estimated is
+T R4
+θ = [ε, φ, Re(α ), Im(α )] ∈ . (6)
+3 3
+3
+These four parameters constitute the hardware impairment
+fingerprint of a satellite transmitter. Since each satellite has
+a unique RF chain manufactured with distinct component
+tolerances, the vector θ differs across satellites.
+D. Satellite Channel Characteristics
+The Iridium constellation operates at L-band (1616–
+1626.5 MHz) from LEO at approximately 780 km alti-
+tude [41]. The downlink channel exhibits several character-
+istics relevant to fingerprint estimation.
+The line-of-sight component dominates, with Rician K-
+◦
+factors typically 10–20 dB for elevation angles above 20 [23],
+[24]. LEO orbital velocity produces Doppler shifts up to
+±36 kHz; for estimation purposes, the carrier frequency offset
+is treated as a nuisance parameter removed prior to fingerprint
+extraction.
+The Iridium signal bandwidth (35 kHz at R = 25 ksps
+s
+with α = 0.4) is far below the coherence bandwidth of the
+satellite channel, so frequency-selective fading is negligible.
+The channel reduces to a single complex coefficient h per
+burst.
+IV. C ´ -R B HWI P
+RAMER AO OUNDS FOR ARAMETER
+E
+STIMATION
+A. Fisher Information Matrix
+N−1
+For N known transmitted symbols {x(n)} observed at
+n=0
+2 2
+signal-to-noise ratio γ = |h| /σ , the (i, j)-th entry of the
+4 × 4 Fisher information matrix is [28]
+N−1 (cid:26) (cid:27)
+∗
+2 ∂f (θ; n) ∂f (θ; n)
+(cid:88)
+[J(θ)] = Re · , (7)
+ij
+σ2 ∂θ ∂θ
+i j
+n=0
+∗ 2
+where f (θ; n) = h[K x(n) + K x (n) + α |x (n)| x (n)]
+1 2 3 IQ IQ
+is the noise-free received signal.
+For i.i.d. uniform symbols, the summation converges to
+constellation expectations. Define the complementary second
+E 2 E 4
+moment µ = [x ], the fourth moment µ = [|x| ],
+20 4
+E 6
+and the sixth moment µ = [|x| ], where expectations are
+6
+uniform over A. For constant-modulus constellations (PSK),
+µ = µ = 1.
+6 4
+Theorem 1 (Closed-Form FIM): For the signal model in
+(5) with known symbols from a unit-power constellation
+E 2
+( [|x| ] = 1), in the small-impairment regime (|ε| ≪ 1,
+|α | ≪ 1), the FIM has the block structure
+3
+(cid:20) (cid:21)
+J J
+IQ × 2
+J = 2N γ + O(ε , α ), (8)
+T 3
+J J
+× PA
+where the IQ sub-block is
+(cid:20) (cid:21)
+β J
+ε εφ
+J = , (9)
+IQ 2
+J (1+ε) β
+εφ φ
+with the directional sensitivities
+−2jφ −2jφ
+1 − Re{e µ } 1 + Re{e µ }
+20 20
+β = , β = , (10)
+ε φ
+2 2
+1+ε −2jφ
+J = Im{e µ }, and the IQ identifiability factor
+εφ 20
+2
+2 E 2 2
+β(A) = 1 − |µ | = 1 − | [x ]| . (11)
+20
+IEEE TRANSACTIONS ON INFORMATION FORENSICS AND SECURITY
+TABLE I
+E 6
+IQ I F β CRB P . µ = [|x| ]
+DENTIFIABILITY ACTOR AND REDICTIONS
+6
+PA . B : CRB-
+DETERMINES ESTIMATION PRECISION OTTOM ROWS DERIVED
+. DR 27 I .
+PREDICTIONS VS EMPIRICAL FROM RIDIUM SATELLITES
+Constellation M µ β µ µ Rank
+20 4 6
+BPSK 2 1 0 1 1 2
+SDPSK 2 1 0 1 1 2
+QPSK/DQPSK 4 0 1 1 1 4
+8-PSK 8 0 1 1 1 4
+16-QAM 16 0 1 1.32 1.96 4
+64-QAM 64 0 1 1.38 2.23 4
+CRB Predictions vs. Empirical (Iridium DQPSK)
+✓
+#1: PA dominates DR > 3 4.48
+✓
+#2: IQ weak DR < 1 0.70
+✓
+#3: Osc. moderate 0.5–3 2.40
+✓
+#4: PA memory DR > 1 1.45
+When β = 0 (i.e. |µ | = 1), det(J ) is proportional to β
+20 IQ
+and vanishes identically to first order; the FIM rank drops to
+at most 2. For circular constellations (µ = 0, β = 1): β =
+20 ε
+1 2
+β = 1/2, J = 0, recovering J = diag(1, (1+ε) ).
+φ εφ IQ
+2
+The PA sub-block is
+J = µ I , (12)
+PA 6 2
+and the cross-coupling block is
+(cid:20) (cid:21)
+µ cos φ sin φ
+4
+J = . (13)
+×
+2 −(1 + ε) sin φ (1 + ε) cos φ
+The cross-coupling expression (13) holds for constellations
+E 2 2
+satisfying [|x| x ] = 0, which includes all circular constel-
+lations (µ = 0) and standard square QAM; see Appendix A
+20
+for the derivation. For constant-modulus constellations (µ =
+6
+µ = 1), the PA and cross-coupling sub-blocks reduce to I
+4 2
+1
+and times the rotation matrix, respectively. The CRB for
+2
+−1
+each parameter is CRB(θ ) = [J ] .
+i ii
+Proof: See Appendix A.
+The factor β in (11) serves as a necessary condition for
+full IQ identifiability: det(J ) is proportional to β at the
+IQ
+operating point, so β = 0 implies the determinant vanishes
+identically to first order regardless of φ. Table I lists β, µ ,
+4
+and µ for standard constellations.
+6
+Remark 1 (Scaling Laws): From Theorem 1, for circular
+constellations (µ = 0, β = 1), CRB(ε) ∝ 1/(N γ) and
+20
+CRB(α ) ∝ 1/(N γµ ). PA estimation precision depends on
+3 6
+µ but not on β. For constant-modulus constellations, µ = 1
+6 6
+and this coincides with 1/(N γ); for QAM, µ > µ , yielding
+6 4
+a lower PA CRB. When β = 0 (real-valued constellations), the
+gain imbalance ε loses identifiability first (β → 0), while φ
+ε
+retains marginal FIM but is confounded with Im(α ) (Propo-
+3
+sition 1). This asymmetry implies PA features are universally
+available, while IQ features depend on the constellation.
+B. PA-IQ Coupling Structure
+The cross-coupling block J in (13) is nonzero for all
+×
+constellations with β > 0, indicating that the PA and IQ
+parameters are statistically coupled. Define the normalized
+FIM correlation
+|[J] |
+ij
+ρ = . (14)
+ij (cid:112)
+[J] [J]
+ii jj
+4
+Corollary 1: At the small-impairment limit (ε → 0, φ → 0)
+for any circular constellation (µ = 0, β = 1) with µ > 0:
+20 6
+µ
+ε,φ→0 4
+ρ −−−−→ √ . (15)
+ε,Re(α )
+3 2µ
+6
+√
+For QPSK (µ = µ = 1): ρ = 1/ 2 ≈ 0.707. For 16-
+4 6
+QAM (µ = 1.32, µ = 1.96): ρ ≈ 0.667. For non-circular
+4 6
+constellations (β < 1), the coupling structure changes and (15)
+does not hold in general.
+∗
+Physically, both ε (image component K x ) and α (cubic
+2 3
+2
+term |x | x ≈ x for constant-modulus) distort in par-
+IQ IQ IQ
+tially collinear directions, producing the off-diagonal entries.
+The CRB inflation from ignoring this coupling, comparing
+−1
+[J ] with 1/[J] , is at the QPSK limit:
+ii ii
+CRB(ε)
+= 2.0, (16)
+1/[J]
+εε
+i.e., ignoring PA-IQ coupling underestimates the CRB of ε by
+a factor of 2, independent of SNR and N .
+C. Channel Marginalization
+In practice, h is unknown. The CRB in Theorem 1 con-
+ditions on known h; treating h as a nuisance parameter
+reduces the effective FIM by the Schur complement J =
+eff
+−1
+J − J J J . Numerical evaluation for QPSK across
+θθ θh hθ
+hh
+◦
+ε ∈ [0, 0.1] and φ ∈ [0, 10 ] shows maximum CRB inflation
+bounded by 2.5×, independent of the Rician K-factor, because
+2
+PA nonlinearity (α |x| x) is structurally separable from the
+3
+linear channel (hx).
+D. Numerical Verification
+We verify Theorem 1 by comparing the closed-form FIM
+with numerical computation (finite-difference and moment-
+based) across five test cases. Fig. 3 presents the CRB as a
+function of SNR for five modulations.
+◦
+At ε = 0.05, φ = 3 for QPSK, the closed-form CRB
+matches the numerical FIM within 6% for ε and 10% for
+φ; at ε = 0.001 (space-grade), the error is below 0.5%.
+The coupling coefficient is ρ = 0.707 analytically and 0.708
+numerically, confirming Corollary 1.
+E. Monte Carlo CRB Validation
+To verify that the CRB is achievable, we conduct a Monte
+Carlo simulation with N = 300 independent trials per
+trial
+SNR point. For each trial, N = 76 known symbols are
+generated from the constellation under test, passed through
+◦
+the signal model (5) with true parameters ε = 0.03, φ = 2 ,
+Re(α ) = 0.02, Im(α ) = 0.01, and corrupted by AWGN.
+3 3
+The HWI parameters are estimated via nonlinear least squares
+with known channel, initialized near the true value (oracle
+initialization), using the Nelder-Mead simplex method. The
+oracle initialization demonstrates achievability of the bound
+rather than practical estimator performance; a blind estimator
+would require additional convergence analysis.
+Fig. 4(a) shows QPSK results. All four MSEs converge
+to their CRBs, with MSE/CRB ratios 0.96–1.06 at 30 dB,
+confirming the bound is tight and achievable under oracle
+IEEE TRANSACTIONS ON INFORMATION FORENSICS AND SECURITY
+  D   [J] /(N )
+ij
+                       
+   
+   
+                       
+   
+ 5 H                           
+3
+   
+ , P                           
+3
+   
+ 5 H     , P   
+3 3
+◦
+Fig. 2. FIM structure for QPSK at ε = 0.05, φ = 3 , N = 76, γ = 20 dB. (
+ρ . At this operating point, ρ(ε, Re(α )) = 0.725, close to the small-impair
+ij 3
+computed from the exact numerical FIM at the stated operating point; the clo
+2
+the 17% difference attributable to the O(ε ) terms at ε = 0.05.
+ 
+  
+ 
+  
+ 
+  
+ 
+  
+ 
+  
+                        
+ 6 1 5   G % 
+ 
+  % 5 &
+ 4 3 6 .
+  D 
+   3 6 .
+    4 $ 0
+    4 $ 0
+ 4 3 6 .   Q R  F R X S O L Q J 
+ % 3 6 .   = 0
+ X Q L G H Q W L I L D E O H
+2 ×
+Fig. 3. CRB vs. SNR for N = 76 known symbols. (a) CRB(ε): BPSK is u
+shows QPSK with PA-IQ coupling ignored, revealing a 2× CRB inflation. (b)
+QAM has lower CRB due to µ > 1 (e.g., µ = 1.96 for 16-QAM). Gray lin
+6 6
+initialization. The unknown-channel case incurs bounded CRB
+inflation (at most 2.5×, Section IV).
+Fig. 4(b) shows BPSK results. The MSE of ε and φ
+−4
+remain constant (≈ 4 × 10 ) across 0–40 dB, confirming
+unidentifiability (CRB = ∞). The MSE of Re(α ) tracks its
+3
+PA sub-block CRB (ratio 1.0–1.4), validating PA fingerprinting
+feasibility for BPSK. The MSE of Im(α ) diverges at high
+3
+SNR due to the (φ, Im(α )) confounding (Proposition 1).
+3
+V. I D A
+DENTIFIABILITY AND ISCRIMINATION NALYSIS
+A. Modulation-Dependent Identifiability
+Proposition 1 (BPSK Signal Collapse): For real-valued
+R
+constellations (A ⊂ ), the received signal in (5) reduces to
+r(n) = h · c(θ) · x(n) + w(n), (17)
+2
+where the effective scalar is c = κ(1 + α |κ| ) with κ =
+3
+1 + j(1 + ε) sin φ. The FIM for θ has rank at most 2. At small
+impairments, the two identifiable real-valued combinations are
+ξ = Re(α ), ξ = (1 + ε) sin φ + Im(α ), (18)
+1 3 2 3
+5
+  E   1 R U P D O L ] H G  F R U U H O D W L R Q 
+ij
+    
+                            
+    
+                            
+    
+ 5 H                                
+3
+    
+ , P                                
+3
+    
+ 5 H     , P   
+3 3
+(a) Absolute FIM entries normalized by Nγ. (b) Normalized correlation matrix
+√ √
+rment limit µ / 2µ = 1/ 2 ≈ 0.707 for QPSK (Corollary 1). Values are
+4 6
+osed-form approximation (Theorem 1) gives [J ]/(Nγ) ≈ 2µ = 2.0, with
+PA 6
+ 
+  
+ 
+  
+ 
+  
+ 
+  
+ 
+  
+                        
+ 6 1 5   G % 
+  
+  H 5  % 5 &
+3
+ % 3 6 .
+  E 
+ 4 3 6 .
+   3 6 .
+    4 $ 0
+    4 $ 0
+ 4 3 6 .  N    
+ 4 3 6 .  N     
+1/(N )
+6
+        3 6 .              4 $ 0 
+6
+unidentifiable (β = 0); QPSK and 16-QAM overlap (β = 1). The dotted line
+E 6
+) CRB(Re(α )): all modulations follow ∝ 1/(Nγµ ), where µ = [|x| ].
+3 6 6
+nes show scaling with N = 32 and N = 256.
+and the null space of the FIM is spanned by
+T T
+v = [1, 0, 0, −φ] , v = [0, 1, 0, −(1+ε)] . (19)
+1 2
+In particular, ε and φ are confounded with Im(α ): any
+3
+change in ε or φ can be compensated to first order by
+adjusting Im(α ), producing identical observations in the
+3
+small-impairment regime.
+R ∗
+Proof: For A ⊂ , x (n) = x(n), so (2) gives x (n) =
+IQ
+(K + K )x(n). Direct computation yields K + K = 1 +
+1 2 1 2
+≜ 2
+j(1 + ε) sin φ κ. Since |x(n)| = 1 for BPSK, the PA
+2
+term becomes α |κ| κ x(n), and the full signal reduces to (17)
+3
+2
+with c = κ(1 + α |κ| ). Expanding at small impairments:
+3
+c ≈ 1 + Re(α ) + j[(1 + ε) sin φ + Im(α )], giving (18). Since
+3 3
+C
+c ∈ is a single complex number, at most two real-valued
+functions of θ are recoverable from the product hc, and the
+FIM rank is at most 2. The null directions (19) follow from
+∂c/∂v = 0 to first order.
+i
+Remark 2 (The Large-FIM-Diagonal Paradox): A large
+FIM diagonal entry does not guarantee identifiability. For
+BPSK, [J] /(N γ) = 2.20 exceeds [J] /(N γ) = 2.02,
+φφ α α
+3R 3R
+IEEE TRANSACTIONS ON INFORMATION FORENSICS AND SECURITY
+ 
+  
+ 
+  
+ 
+  
+ 
+  
+ 
+  
+ 
+  
+                        
+ 6 1 5   G % 
+ % 5 &    ( 6 0
+  D   4 3 6 .   = 1   I X O O  U D Q N 
+ 0 6 (     0 6 (  , P    
+3
+ 0 6 (     & 5 %   G D V K H G 
+ 0 6 (  5 H    
+3
+Fig. 4. Monte Carlo CRB validation (N = 76, 300 trials per SNR). (a) QP
+CRBs (dashed), confirming the bound is tight and achievable. At 30 dB SNR
+tracks the PA sub-block CRB (identifiable), while MSE for ε and φ remain co
+prediction of Proposition 1. The divergence of MSE(Im(α )) from its sub-bloc
+3
+in Remark 2.
+ 
+ 
+ 
+ 
+ 
+ 
+ % 3 6 .  4 3 6 .    3 6 .     4 $ 0     4 $ 0
+ M      M      M      M       M     
+ N Q D 5  0 , )
+ 
+  
+  D 
+                 
+  
+ 
+  
+   
+ 
+  
+ 
+  
+ % 3 6 .  4 3 6 .
+ M      M    
+)
+N(/
+]J[
+ii
+  E 
+[J] 0
+Fig. 5. Modulation-dependent FIM properties. (a) FIM rank drops to 2 for B
+For BPSK, [J] ≈ 0 while [J] = 2.20 is large—yet φ is unidentifiable du
+εε φφ
+exceeds 0.99 (near-perfect collinearity), while QPSK drops to 0.684.
+yet φ is unidentifiable. The reason is that the sensitivity
+directions ∂c/∂φ ∝ j and ∂c/∂Im(α ) ∝ j are collinear
+3
+(both purely imaginary), producing a sub-block J
+(φ,Imα )
+3
+with eigenvalue ratio 1542:1, i.e., numerically rank-1.
+Identifiability requires checking the rank of the relevant FIM
+sub-block, not individual diagonal entries.
+Corollary 2 (OrbID Prediction): The Orbcomm constella-
+tion uses SDPSK, a variant of 2-PSK. By Proposition 1,
+only ξ = Re(α ) is individually identifiable from Orbcomm
+1 3
+signals; the IQ parameters ε and φ are confounded with
+Im(α ). This predicts that PA amplitude features (which
+3
+depend on Re(α )) can fingerprint BPSK-type satellites, while
+3
+IQ-based fingerprinting is impossible regardless of classifier
+architecture, training data volume, or observation length.
+This prediction is consistent with the empirical result of
+Solenthaler et al. [8]: AUC = 0.53 (near random) for intra-
+constellation fingerprinting on Orbcomm, despite using the
+same neural architecture that achieved AUC > 0.9 on Iridium
+6
+ 
+  
+ 
+  
+ 
+  
+ 
+  
+ 
+  
+ 
+  
+                        
+ 6 1 5   G % 
+ % 5 &    ( 6 0
+  E   % 3 6 .   = 0   U D Q N   
+ 0 6 (      0 6 (    
+ F R Q V W D Q W   & 5 %  =  
+ 0 6 (  5 H      0 6 (   
+3
+ 0 6 (  , P      & 5 %   3 $   G D V K H G 
+3
+ 0 6 (   
+PSK (β = 1): all four parameter MSEs (solid markers) track their respective
+R, MSE/CRB ≈ 1.0 for all parameters. (b) BPSK (β = 0): MSE for Re(α )
+3
+onstant across SNR (unidentifiable, CRB = ∞), confirming the rank-deficiency
+ck CRB at high SNR is consistent with the (φ, Im(α )) confounding identified
+3
+ 5 H   
+3
+ , P   
+3
+   
+   
+   
+   
+   
+   
+   3 6 .     4 $ 0     4 $ 0  % 3 6 .  4 3 6 .    3 6 .     4 $ 0     4 $ 0
+ M      M       M       M      M      M      M       M     
+))
+(mI
+,
+(
+3
+  F 
+     
+     
+     
+     
+     
+ F R O O L Q H D U 
+ F R Q I R X Q G H G
+BPSK (β = 0). (b) Per-parameter diagonal entries [J] /(Nγ) on a log scale.
+ii
+ue to collinearity (Remark 2). (c) Normalized correlation ρ(φ, Im(α )): BPSK
+3
+(DQPSK).
+Remark 3 (DQPSK vs. OFDM): For OFDM-based satellite
+systems (Starlink, 5G-NTN) using 16-QAM or higher, β = 1
+and µ > 1. The signal model does not collapse: all four
+6
+parameters produce linearly independent sensitivity directions,
+and the FIM has full rank. The CRB framework predicts that
+both IQ and PA features contribute to discrimination, with
+QAM constellations achieving lower PA CRBs than PSK due
+to µ > 1.
+6
+B. CRB-Induced Discrimination Bound
+Given two satellites A and B with parameter vectors θ
+A
+and θ , define the discrimination metric
+B
+2 T
+d (A, B) = ∆θ J(γ, N ) ∆θ, (20)
+where ∆θ = θ − θ .
+A B
+Theorem 2 (Discrimination Bound): For Gaussian observa-
+tions with an efficient estimator, the optimal (MAP) pairwise
+IEEE TRANSACTIONS ON INFORMATION FORENSICS AND SECURITY
+misidentification probability is
+(cid:18) (cid:19)
+d(A, B)
+⋆
+P (A, B) = Q , (21)
+e
+2
+where Q(·) is the Gaussian Q-function. Any suboptimal test
+satisfies P ≥ Q(d/2). The metric decomposes as
+e
+4 4
+(cid:88) (cid:88)
+2
+d = [J] ∆θ ∆θ . (22)
+ij i j
+i=1 j=1
+Sketch: For an efficient estimator, the parame-
+ˆ
+ter estimates are asymptotically distributed as θ ∼
+−1
+N (θ , J ) [28], [38]. The MAP binary hypothesis test
+true
+H : θ = θ vs. H : θ = θ with equal priors
+A A B B
+−1
+and shared covariance J reduces to comparing the log-
+likelihood ratio against zero, yielding the sufficient statistic
+ˆ
+T T
+T = ∆θ J θ with decision threshold ∆θ J(θ +θ )/2. The
+A √ B
+resulting error probability is Q(d/2) where d = ∆θT J ∆θ
+is the Mahalanobis distance [43]. Any suboptimal test incurs
+P ≥ Q(d/2) by the data processing inequality.
+e
+2
+The metric d jointly accounts for three factors: (i) the
+FIM magnitude (∝ N γ), (ii) the parameter spread ∥∆θ∥, and
+(iii) the FIM-weighted direction, which amplifies parameter
+differences along high-FIM dimensions. The Gaussian approx-
+imation underlying Theorem 2 requires N sufficiently large
+for asymptotic normality; at N = 76, the bound serves as
+a design guideline rather than a tight operational guarantee.
+The pairwise bound Q(d/2) provides a direct theoretical
+proxy for authentication separability: across a population of
+satellite pairs, larger d implies higher pairwise AUC and
+a lower achievable false-acceptance rate, linking the FIM-
+derived metric to the ROC analysis in Section VII-F.
+C. Feature-Wise Discrimination Prediction
+For each parameter θ , define the per-parameter discrimina-
+i
+tion ratio
+|∆θ |
+i
+DR = , (23)
+i (cid:112)
+CRB(θ )
+i
+measuring inter-satellite spread relative to estimation preci-
+sion. From Theorem 1, four predictions follow for DQPSK:
+Prediction 1: PA features dominate (DR > 3). The CRB
+α
+3
+for α is small (high FIM) and manufacturing spread in PA
+3
+characteristics provides measurable |∆α |.
+3
+Prediction 2: IQ features are weak (DR < 1). For constant-
+ε
+modulus DQPSK, IQ imbalance does not produce amplitude
+variation, limiting its observable effect.
+Prediction 3: Oscillator features are moderate (0.5 <
+DR < 3). Phase noise dynamics vary across oscillators but
+osc
+are only partially observable at symbol rate.
+Prediction 4: PA memory is detectable (DR > 1).
+mem
+Consecutive symbols experience correlated PA compression,
+observable via amplitude autocorrelation.
+VI. M -M E
+ULTI ESSAGE STIMATION
+A. Feature Extraction
+Given a single burst of N = 76 known symbol-
+known
+rate samples, the following features are extracted after CFO
+removal and amplitude normalization.
+7
+PA nonlinearity features. For an ideal constant-modulus
+signal, the amplitude a(n) = |r (n)| equals unity for
+norm
+all n; deviations arise from PA compression. We extract four
+2
+features: the normalized amplitude variance σˆ , the 5th–95th
+a
+ˆ
+percentile range R , the excess kurtosis κˆ , and the lag-1
+a a
+autocorrelation ρˆ (1).
+a
+Lemma 1 (Amplitude Variance as PA Proxy): For
+constant-modulus M -PSK with |ε| ≪ 1 and |α | ≪ 1:
+3
+Var(|r |)
+2 ≜ norm 2 2 2
+σ = 4|α | Var(|x | ) + O(ε ). (24)
+a E 3 IQ
+[|r |]2
+norm
+2
+Proof: The PA term modulates the amplitude by α |x | ,
+3 IQ
+2 2
+where |x | varies across symbols because x is not constant
+IQ
+2 2
+for QPSK despite |x| = 1. The PA contribution to σ scales
+a
+2 2
+as |α | , while the IQ contribution scales as ε . For Iridium-
+3
+grade impairments (|ε| ∼ 0.01–0.05, |α | ∼ 0.02–0.05), both
+3
+terms can be comparable in absolute magnitude; however, the
+2
+inter-satellite variation in σ is dominated by α differences,
+a 3
+consistent with the cross-file correlation r = 0.999 for PA
+features versus r < 0.13 for IQ features (Table II).
+2
+By the delta method [44], the CRB for σ follows from the
+a
+CRB for |α |:
+3
+(cid:18) (cid:19)2
+2
+∂σ
+2 a
+CRB(σ ) ≈ CRB(|α |). (25)
+a 3
+∂|α |
+3
+This connects the estimation-theoretic bound (Section IV) to
+the empirically measured feature (Section VII). An analogous
+connection for the remaining features (amplitude range, au-
+tocorrelation, phase statistics) would require feature-specific
+delta-method analyses, which we defer to future work; the
+CRB predictions for these features are validated empirically
+in the lower panel of Table I.
+Oscillator features. The fourth-power operation z (n) =
+4
+4
+r (n) removes DQPSK modulation, leaving a residual
+norm
+∠
+phase process. The lag-1 autocorrelation of z captures
+4
+oscillator dynamics.
+Constellation features. The error vector magnitude (EVM)
+measures the aggregate distortion relative to the nearest
+DQPSK constellation point.
+In total, 13 candidate features are evaluated in the DR
+analysis (Table III): four PA, three oscillator, one constellation
+(EVM), two IQ, two DC, and one PA cross-term. Authenti-
+ˆ
+2
+cation subsets (Table IV): PA-only (3): σˆ , R , ρˆ (1); CRB-
+a a a
+guided (4): PA-only plus phase ACF(1); All (6): CRB-guided
+plus κˆ , phase variance, EVM; IQ-only (2): ε, φ. Features
+a
+with DR < 1 are excluded.
+B. Multi-Message Accumulation
+A single burst provides a noisy feature estimate. To improve
+precision, features are accumulated across N bursts using
+msg
+the weighted average
+(cid:80)N ˆ
+msg w f
+¯ m=1 m m
+f = , w ∝ γˆ , (26)
+m m
+(cid:80)N
+msg w
+m
+m=1
+where γˆ is the estimated per-burst SNR. For i.i.d. obser-
+m
+¯ ˆ
+vations, Var(f ) ≈ Var(f )/N , reducing estimation noise
+1 msg
+(cid:112)
+by N .
+msg
+IEEE TRANSACTIONS ON INFORMATION FORENSICS AND SECURITY
+     
+     
+     
+     
+ 
+                         
+                         
+ 
+ 6 D W H O O L W H  , '
+ V H J D V V H 0
+N = 30
+min
+Fig. 6. PAST-AI constellation coverage: total messages per satellite from both
+recording campaigns. Horizontal dashed line indicates the minimum threshold
+(N = 30) for balanced discrimination analysis. Satellite IDs range from
+min
+64 to 101, covering 37 of the 66-satellite Iridium constellation.
+With N = 500 bursts (typical for a single satellite in the
+msg √
+PAST-AI dataset), the noise reduction factor is 500 ≈ 22,
+enabling the precise fingerprint estimates observed in Sec-
+tion VII.
+VII. E V
+XPERIMENTAL ALIDATION
+A. Dataset and Processing
+The framework is validated on the PAST-AI dataset [7],
+[45]: 3.84 million Iridium IRA messages from 66 satellites,
+collected via USRP X310 in Doha, Qatar, provided as symbol-
+rate IQ samples with satellite ID labels from gr-iridium [26].
+The dataset comprises two partially overlapping recording
+campaigns:
+File A (September–November 2020): 61,984 high-
+•
+confidence messages from 36 satellites.
+File B (October–December 2020): 65,727 high-
+•
+confidence messages from 35 satellites.
+The campaigns overlap in October–November but were pro-
+cessed independently with no shared calibration. Messages
+with decoding confidence below 80% are discarded.
+Processing per message consists of: (i) CFO estimation via
+linear phase regression and complex derotation; (ii) amplitude
+normalization to unit mean power; (iii) feature extraction from
+the first 76 symbols (known preamble and unique word).
+The 76 known symbols per burst (preamble + BPSK unique
+word) yield β = 0, so the CRB predictions tested are: PA fea-
+tures dominate (β-independent), IQ features are unidentifiable
+(β = 0), and the DR ranking follows the FIM structure. The
+β = 1 case is validated via Monte Carlo (Fig. 4).
+B. Constellation Coverage
+The combined dataset covers 37 of 66 Iridium satellites,
+with 27 satellites exceeding the N = 30 threshold for
+min
+balanced discrimination analysis. This sample of 24 cross-
+validated satellites exceeds the device count in several recent
+TIFS RF fingerprinting studies (e.g., 9–16 devices in [17]).
+Fig. 6 shows the message distribution, which ranges from
+34 messages (Sat 82) to over 40,000 (Sat 100). This imbalance
+motivates the balanced bootstrap procedure in Section VII-D.
+8
+TABLE II
+C -F P C (24 C S )
+ROSS ILE EARSON ORRELATION OMMON ATELLITES
+Group Feature r p-value
+−29
+amp var 0.999 < 10
+−24
+amp range 0.996 < 10
+PA
+−13
+amp acf1 0.960 < 10
+−7
+amp kurtosis 0.853 < 10
+−17
+Oscillator phase acf1 0.983 < 10
+−13
+Constellation EVM 0.963 < 10
+IQ ε −0.127 0.55
+φ −0.044 0.84
+DC DC −0.030 0.89
+I
+DC −0.066 0.76
+Q
+TABLE III
+B D R (27 S , N = 30, 30
+ALANCED ISCRIMINATION ATIO ATELLITES√
+bal
+T ). S DR / 30; 95% CI
+RIALS TANDARD ERROR OF THE MEAN IS STD S FOR
+(DR > 3) DR = 3 .
+ALL STRONG FEATURES EXCLUDE THE THRESHOLD
+Group Feature DR (mean ± std) Verdict
+PA amp var 4.48 ± 0.63 Strong
+PA amp range 4.29 ± 0.64 Strong
+Oscillator phase acf1 2.40 ± 0.40 Moderate
+PA amp acf1 1.45 ± 0.31 Detectable
+PA amp kurtosis 0.92 ± 0.17 Weak
+Const. EVM 0.86 ± 0.21 Weak
+Oscillator CFO 0.79 ± 0.13 Not discriminative
+IQ ε 0.70 ± 0.14 Not discriminative
+IQ φ 0.69 ± 0.12 Not discriminative
+DC DC 0.74 ± 0.13 Not discriminative
+I
+C. Cross-File Stability
+We compute per-satellite fingerprints independently from
+each file and measure the Pearson correlation across 24 com-
+mon satellites (Table II).
+PA amplitude variance achieves r = 0.999 with maximum
+per-satellite deviation < 0.003. Five PA and oscillator features
+exceed r > 0.85, confirming hardware-intrinsic stability over
+months. IQ features show no significant correlation (|r| <
+0.13, p > 0.5), consistent with CRB predictions.
+Fig. 7 visualizes the comparison. PA amplitude variance
+(Fig. 7a) shows all 24 satellites aligned along y = x, spanning
+0.011 (Sat 100) to 0.073 (Sat 77), while IQ imbalance (Fig. 7b)
+shows no systematic relationship.
+D. Balanced Discrimination Analysis
+To avoid inflation from unequal message counts, discrimi-
+nation ratios are computed using balanced bootstrap: each of
+30 trials subsamples N = 30 messages per satellite, splits
+bal
+into halves, and computes inter-satellite variance relative to
+intra-satellite variance.
+Table III reports the results. PA amplitude features achieve
+DR > 4 across 27 satellites. Two PA features and one oscillator
+feature exceed DR = 1, while all IQ features remain below 1.
+E. CRB Prediction Matching
+The lower panel of Table I compares the four predictions
+from Section V with empirical results. Predictions 1–2 follow
+IEEE TRANSACTIONS ON INFORMATION FORENSICS AND SECURITY
+    
+    
+    
+    
+    
+    
+    
+                                  
+ ) L O H  $   D P S ? B Y D U
+ U D Y B ? S P D   %  H O L )
+  D  r = 0.999   
+    
+       
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+   
+Fig. 7. Cross-file fingerprint stability. (a) PA amplitude variance: Pearson r
+point represents one satellite, with the dashed line indicating y = x. (b) IQ ga
+confirming that IQ features are not stable fingerprints for DQPSK.
+ 
+ 
+ 
+ 
+ 
+ 
+ , 4  3 $  2 V F L O   ' &  & R Q V W 
+ L P E D O   Q R Q O L Q   O D W R U
+ 5 '  G H F Q D O D %
+ 0 H D V X U H G   E H V W   0 H D V X U H G   P H D Q 
+ 3 U H G   >3   
+  
+ 3 U H G       
+ 3 U H G   1   
+ 3 U H G   <1     3 U H G   <1   
+Fig. 8. Feature-group discrimination: CRB-derived prediction vs. empirical
+measurement from 27 Iridium satellites. Each group shows the best (dark) and
+mean (light) measured DR. Text above each group indicates the predicted
+✓
+range with a checkmark ( ) or cross (×) for match/mismatch. All four
+predictions match (Table I).
+directly from the CRB scaling laws; Predictions 3–4 are
+informed by the FIM structure but lack formal feature-level
+derivations. All four match empirically, supporting the frame-
+work’s value for guiding feature selection. Fig. 8 provides a
+visual summary.
+F. Authentication Protocol and ROC Analysis
+We evaluate the CRB framework for authentication system
+design by constructing a cross-file authentication protocol.
+File A fingerprints serve as enrollment references; File B
+fingerprints serve as test probes. Authentication decisions are
+based on the normalized Euclidean distance between the test
+feature vector and each enrollment reference. We compare five
+feature selection strategies: PA-only (3 features), CRB-guided
+(top-4 from CRB analysis), Oscillator-only (2), IQ-only (2),
+and All (6 non-IQ features including EVM).
+To contextualize the parametric results, we compare against
+three ML baselines trained on the same cross-file protocol
+using per-message features: (i) SVM with RBF kernel on all
+9
+    
+    
+    
+    
+    
+    
+                             
+ ) L O H  $  
+   %  H O L )
+  E  r = 0.127
+  
+  
+  
+  
+  
+  
+  
+     
+  
+  
+  
+      
+     
+  
+  
+  
+  
+   
+     
+r = 0.999 across 24 satellites from two recording campaigns. Each labeled
+ain imbalance ε: no significant cross-file correlation (r = −0.127, p = 0.55),
+ S D B D P S B Y D U
+ S D B D P S B U D Q J H
+ R V F B S K D V H B D F I 
+ S D B D P S B D F I 
+ S D B D P S B N X U W
+ F R Q V W B H Y P
+ R V F B F I R
+ G F B 4
+ G F B ,
+ S D B D P S P
+ R V F B S K D V H B Y D U
+ L T B H S V L O R Q
+ 3 $  , 4
+ 2 V F  ' &
+ L T B S K L
+ & R Q V W
+           
+ % D O D Q F H G  ' 5
+Fig. 9. Discrimination ratio by feature, sorted by DR. Color indicates
+feature group: green (PA), teal (oscillator), blue (constellation), red (IQ),
+gray (DC). The DR = 3 threshold (dashed green) separates strong from
+moderate discrimination; DR = 1 (dashed red) separates detectable from
+noise-dominated features.
+six non-IQ features (AUC = 0.66), (ii) SVM on the four CRB-
+guided features (AUC = 0.66), and (iii) Random Forest on all
+six features (AUC = 0.69). IQ features are excluded from the
+ML baselines because the CRB analysis predicts they carry
+no discriminative information for DQPSK; including them
+does not improve ML performance. These classifiers learn
+directly from noisy per-message observations without multi-
+message accumulation. To isolate the effect of accumulation
+from feature weighting, we also evaluate an accumulated
+RF baseline (RF-Acc): the same Random Forest trained on
+per-message File A features, but with test-time predictions
+accumulated by averaging class probabilities across all File B
+messages per satellite. Additionally, we include a formal GLRT
+baseline using Mahalanobis distance with regularized sample
+covariance on the four CRB-guided features.
+Fig. 11(a) shows the cross-file ROC. CRB-guided selection
+achieves AUC = 0.934 with detection probability P = 0.29
+D
+IEEE TRANSACTIONS ON INFORMATION FORENSICS AND SECURITY
+ 3 $  D P S   Y D U 
+ 3 $  D P S   U D Q J H
+ 2 V F   S K D V H  $ & )   
+ 3 $  D P S   $ & )   
+                       
+                       
+ 6 D W H O O L W H  , '   V R U W H G
+Fig. 10. Per-satellite fingerprint profiles for 24 cross-validated Iridium satelli
+±3) for the top four discriminative features. The smooth monotonic decrease in
+capture distinct, satellite-specific hardware properties.
+   
+   
+   
+   
+   
+   
+                       
+ ) D O V H  3 R V L W L Y H  5 D W H
+ H W D 5  H Y L W L V R 3  H X U 7
+  D   & U R V V  I L O H  5 2 &
+ & 5 %  J X L G H G   $ 8 &        
+ 3 $   $ 8 &        
+ 2 V F   $ 8 &        
+ , 4   $ 8 &        
+ $ O O   $ 8 &        
+ * / 5 7  & 5 %    $ 8 &        
+ 6 9 0  $ O O   $ 8 &        
+ 6 9 0  & 5 %    $ 8 &        
+ 5 )  $ O O   $ 8 &        
+ 5 )  $ F F   $ 8 &        
+Fig. 11. Authentication performance on 24 Iridium satellites. (a) Cross-file R
+GLRT (AUC = 0.83), accumulated RF (AUC = 0.70), and per-message ML
+(b) AUC vs. message accumulation N : PA-based authentication improves m
+acc
+at P = 0.01 and P = 0.83 at P = 0.1 (Table IV). PA-
+FA D FA
+only (AUC = 0.932) nearly matches CRB-guided, while the
+all-features strategy (AUC = 0.846) is degraded by feature
+dilution. All parametric methods outperform ML baselines
+(AUC ≤ 0.69), confirming that multi-message accumulation
+is the key advantage over per-message classification. The
+formal GLRT using the same four CRB-guided features with
+sample-covariance weighting yields AUC = 0.830, below the
+parametric CRB-guided approach (AUC = 0.934). The gap
+arises because the GLRT estimates the full covariance from
+2
+only 24 enrollment satellites, whereas DR -weighting exploits
+the FIM-derived discrimination structure without covariance
+estimation.
+Fig. 11(b) reveals that PA-based AUC increases mono-
+(cid:112)
+tonically with N , consistent with N noise reduction
+acc msg
+(Section VI), while IQ remains at AUC ≈ 0.5 regardless of
+accumulation. This confirms that the failure is fundamental
+under the β = 0 known-symbol regime and symbol-rate
+pipeline studied here, consistent with the broader constant-
+modulus DQPSK analysis (Proposition 1).
+10
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+                         
+                         
+ 
+ G  E \  3 $  D P S   Y D U L D Q F H 
+ H U R F V  ]
+ites, sorted by PA amplitude variance. Each cell shows the z-score (clipped to
+n amplitude variance and correlated variation across features confirm that these
+   
+   
+   
+   
+   
+   
+   
+                     
+N    P H V V D J H V  S H U  I L Q J H U S U L Q W 
+acc
+ & 8 $
+  E   $ 8 &  Y V   D F F X P X O D W L R Q
+ , 4   $ 8 &  0.5
+ U H J D U G O H V V  R I N
+acc  & 5 %  J X L G H G
+ 3 $
+ , 4
+ROC: CRB-guided selection achieves AUC = 0.934, outperforming the formal
+L baselines (AUC ≤ 0.69). IQ features yield AUC = 0.536 (near random).
+monotonically, while IQ remains at chance level regardless of N .
+acc
+TABLE IV
+C -F A P (24 S ). P
+ROSS ILE UTHENTICATION ERFORMANCE ATELLITES
+D
+P = 0.01 0.1.
+REPORTED AT AND
+FA
+Strategy D AUC P | P | Type
+D .01 D .1
+2
+DR (IWAT) 6 0.934 0.29 0.83 Parametric
+CRB-guided 4 0.934 0.29 0.83 Parametric
+PA-only 3 0.932 0.25 0.79 Parametric
+DR (IWAT) 6 0.885 — — Parametric
+All features 6 0.846 0.13 0.67 Parametric
+GLRT (CRB-4) 4 0.830 0.17 0.50 Hypothesis test
+Equal-wt (IWAT) 6 0.807 0.25 0.54 Parametric
+Oscillator-only 2 0.742 0.08 0.38 Parametric
+RF-Acc (all feat.) 6 0.696 0.08 0.29 ML + accumulation
+RF (all feat.) 6 0.690 0.08 0.29 ML baseline
+SVM (CRB-4) 4 0.658 0.08 0.25 ML baseline
+SVM (all feat.) 6 0.657 0.08 0.25 ML baseline
+IQ-only 2 0.536 0.00 0.13 Parametric
+G. Identifiability-Weighted Authentication Test
+The preceding analysis selects features by hand based on
+CRB predictions. We now formalize the selection and scoring
+as an authentication scoring rule that can be instantiated for
+arbitrary modulations under the present feature model; real-
+data validation here is limited to the Iridium β = 0 regime.
+IEEE TRANSACTIONS ON INFORMATION FORENSICS AND SECURITY
+Algorithm 1 Identifiability-Weighted Authentication Test
+ˆ(m)
+Require: Constellation A, enrollment features {f }, test
+ik
+ˆ(m)
+features {f }
+k
+Ensure: Accept / Reject
+E 2 2
+Compute β(A) = 1 − | [x ]|
+1:
+if β = 0 then
+2:
+F ← {PA, oscillator features}
+3:
+else
+4:
+F ← {PA, oscillator, IQ features}
+5:
+end if
+6:
+Compute DR for k ∈ F via balanced bootstrap
+7:
+k
+(cid:80)
+2 2
+w ← DR / DR
+8:
+k k k′ k′
+¯ (cid:80) ˆ(m)
+−1
+Accumulate test fingerprint: f = N f
+9:
+k msg m k
+(cid:80) ¯
+2
+S = w (f − µ ) for each enrolled satellite i
+10:
+i k k ik
+k∈F
+∗
+i = arg min S
+11:
+i i
+Set τ from enrollment ROC at target operating point
+12:
+if S < τ then
+13:
+i∗
+∗
+Accept as satellite i
+14:
+else
+15:
+Reject
+16:
+end if
+17:
+Algorithm design. Algorithm 1 proceeds in two stages.
+Offline, β(A) determines the active set F and each feature
+(cid:80)
+2 2
+receives weight w = DR / DR . The squaring empha-
+k k k′ k′
+sizes strong features: PA amplitude variance receives w = 0.42
+while each IQ feature receives w < 0.01. Online, the test
+computes the weighted score
+(cid:88)
+¯ 2
+S = w (f − µ ) , (27)
+i k k ik
+k∈F
+¯
+where f is the multi-message accumulated test feature (glob-
+k
+ally normalized) and µ is the enrollment reference for
+ik
+∗
+satellite i. The claimed identity is i = arg min S ; the
+i i
+acceptance threshold τ is set by the target operating point
+on the enrollment-phase ROC curve. Both the DR weights
+{w } and the threshold τ are computed exclusively from the
+k
+enrollment data (File A); no test-side information enters the
+offline stage.
+2
+Results. DR -weighted IWAT achieves AUC = 0.934,
+matching the hand-selected CRB-guided subset despite us-
+ing six features including IQ (Table IV, Fig. 12). Equal
+weighting yields AUC = 0.807 (−0.127), confirming that
+the identifiability-informed discrimination structure provides
+effective emphasis for multi-feature fusion.
+VIII. D
+ISCUSSION
+Validation scope. The β = 0 regime is supported by theo-
+rem, Monte Carlo, and real-data validation; the β = 1 (QPSK)
+regime by theorem and Monte Carlo (Fig. 4); OFDM/QAM
+predictions remain model-based only.
+Iridium known-symbol structure. The 76 known symbols per
+burst (preamble + BPSK unique word) yield β = 0, reinforcing
+IQ unidentifiability. The β = 1 analysis applies to unknown
+data symbols and provides forward-looking predictions for
+OFDM systems.
+11
+TABLE V
+V S M R
+ALIDATION TATUS BY ODULATION EGIME
+Regime Theorem Monte Carlo Real Data
+✓ ✓ ✓
+β = 0 (BPSK/preamble)
+✓ ✓
+β = 1 (QPSK) —
+✓
+β = 1 (16/64-QAM, OFDM) — —
+Why IQ imbalance features fail. For constant-modulus
+DQPSK, IQ imbalance confines its effect to phase rotation
+indistinguishable from the channel (DR < 1), and the gr-
+ε
+iridium receiver [26] partially compensates it through synchro-
+nization.
+Scope and limitations of the CRB analysis. The CRB in
+Theorem 1 bounds estimation precision from raw baseband
+observations with known symbols. The experimental features
+in Section VII are extracted after symbol-rate decimation,
+CFO removal, and amplitude normalization by the gr-iridium
+pipeline [26]. Two properties connect the bound to practice.
+First, the identifiability direction is preserved: if a parameter is
+unidentifiable from raw observations (β = 0), no deterministic
+post-processing can create identifiability; the FIM null space is
+invariant under invertible transformations. This validates Pre-
+diction 2 and strengthens the identifiability-based explanation
+for OrbID. Second, for identifiable parameters (β > 0), the
+feature extraction pipeline may lose information relative to the
+raw CRB, so the bound is optimistic. This gap is consistent
+with the observed AUC = 0.93 versus SatIQ’s AUC = 0.96,
+which operates on oversampled waveforms. Characterizing the
+exact information loss of symbol-rate processing remains an
+important open problem.
+To quantify the pipeline dependence, we applied identical
+feature extraction to the SatIQ dataset [6], which provides
+oversampled (25 MS/s) IQ captures decimated to symbol
+rate via matched filtering. Despite originating from the same
+Iridium constellation, all features yield DR < 0.2 (vs. DR >
+4 from PAST-AI), confirming that the gr-iridium decoder
+preserves PA-induced amplitude distortion that brute-force
+decimation destroys.
+Comparison with existing methods.
+Table VI compares our approach with SatIQ, PAST-AI,
+and the ML baselines. IWAT achieves AUC = 0.93 using
+2
+DR -weighted scoring on six features (Table IV), combining
+(cid:112)
+multi-message accumulation ( N ≈ 22× noise reduction)
+msg
+with identifiability-guided DR-weighted scoring. The SatIQ
+comparison is indirect as it uses oversampled captures from a
+different receiver.
+Implications for next-generation satellites (model predic-
+tion). OFDM-based systems (Starlink, 5G-NTN) use 16/64-
+QAM with β = 1 and µ > 1. The CRB framework pre-
+6
+dicts restored IQ identifiability and enhanced discrimination
+for these systems, with lower PA CRBs than PSK due to
+µ > 1 (Table I). This remains unvalidated on real non-
+6
+Iridium data. The Monte Carlo validation (Fig. 4) confirms
+efficient estimation of all four parameters for QPSK under
+the current signal model. Extending the model to wideband
+OFDM channels and oversampled receivers is needed before
+IEEE TRANSACTIONS ON INFORMATION FORENSICS AND SECURITY
+   
+   
+   
+   
+   
+   
+                        
+ ) D O V H  3 R V L W L Y H  5 D W H
+ H W D 5  H Y L W L V R 3  H X U 7
+  D    E 
+ 3 $  Y D U
+P       
+D
+ #P      
+FA  3 $  U D Q J H
+ 3 $  D F I       
+ 2 V F  D F I       
+ , 4  H S V L O R Q      
+ , : $ 7   ' 52    $ 8 &        
+ ( T X D O  Z W   $ 8 &        
+ 3 D U D P H W U L F   $ 8 &          , 4  S K L      
+P         5 )   $ 8 &        
+D
+  V X S S U H V V H G
+ #P       
+FA
+       
+ ' 52
+2
+Fig. 12. IWAT authentication results. (a) ROC comparison: DR -weighted IW
+2
+scoring on the same features yields AUC = 0.807. (b) DR feature weight
+2
+suppressed to w < 0.01 (β-suppressed). (c) Weight ablation: DR weighting p
+TABL
+C S RF
+OMPARISON OF ATELLITE
+SatIQ [6] PAST-AI [7] M
+Approach Neural CNN
+Input 22k-dim IQ Symbol-rate 6
+Reported metric AUC = 0.96 Acc. = 85% A
+Interpretable No No
+Bounds None None
+Failure pred. No No
+⋆
+Metrics, inputs, and datasets differ across SatIQ and
+these predictions can be considered operational.
+IX. C
+ONCLUSION
+We presented, to the best of our knowledge, the first
+estimation-theoretic performance analysis for satellite RF fin-
+gerprinting. The closed-form FIM (Theorem 1) reveals that
+E 2 2
+the IQ identifiability factor β = 1 − | [x ]| serves as a nec-
+essary condition for full IQ parameter recoverability: setting
+β = 0 for BPSK yields a rank-deficient FIM, showing that
+IQ fingerprinting is infeasible for binary-modulated satellites
+and providing a plausible explanation for OrbID’s near-random
+performance on Orbcomm.
+The discrimination metric correctly predicts that PA non-
+linearity dominates for constant-modulus signals, validated
+with r = 0.999 cross-file stability on 24 Iridium satellites.
+The proposed IWAT algorithm converts these predictions
+2
+into a practical authentication scoring rule: DR -weighting
+automatically suppresses uninformative features, achieving
+AUC = 0.934 from six features (equal weighting: 0.807; ML
+baselines: ≤ 0.69). IQ-based authentication remains at chance
+level (AUC ≈ 0.5) regardless of accumulation, confirming the
+β = 0 identifiability limitation.
+Future work includes extending the model to phase noise
+and filter response parameters, collecting oversampled data
+for full CRB validation across the Iridium constellation, and
+applying the framework to OFDM-based systems such as
+Starlink and 5G-NTN where the restored IQ identifiability
+12
+     
+     
+     
+     
+     
+     
+     
+ 
+     
+     
+     
+             ( T X D O  ' 5  ' 52
+2  Z H L J K W w
+k
+ & 8 $
+  F 
+     
+     
+     
+WAT matches CRB-guided hand selection (AUC = 0.934), while equal-weight
+ts: PA features receive >80% of total weight; IQ features are automatically
+provides +0.127 AUC gain over equal weighting.
+LE VI
+⋆
+F A
+INGERPRINTING PPROACHES
+ML baseline This work
+SVM/RF Parametric
+2
+6 features 6 features (DR -wt)
+AUC ≤ 0.69 AUC = 0.93
+No Yes
+None CRB
+No Yes (OrbID)
+d PAST-AI; ML baseline uses same data as this work.
+(β = 1) and enhanced PA precision (µ > 1) predict improved
+6
+discrimination.
+A A
+PPENDIX
+P T 1
+ROOF OF HEOREM
+Substitute (5) into (7). The derivatives of K , K from (3)
+1 2
+jφ −jφ
+e e ∗
+yield sensitivity vectors δ = x − x and δ =
+ε φ
+2 2
+jφ −jφ
+j(1+ε)e j(1+ε)e
+∗ 2
+x+ x at α = 0, while δ = |x | x
+3 α IQ IQ
+2 2 3R
+2
+and δ = j|x | x .
+α IQ IQ
+3I
+For i.i.d. symbols uniform on A, the FIM entries reduce
+E 2 E 2
+to constellation moments µ = [|x| ] = 1, µ = [x ],
+2 20
+E 4 E 6
+µ = [|x| ], and µ = [|x| ]. Evaluating the IQ diagonal
+4 6
+entries:
+E 2 1 −2jφ
+[|δ | ] = (1 − Re{e µ }) = β , (28)
+ε 20 ε
+2
+2
+E 2 (1+ε) −2jφ 2
+[|δ | ] = (1 + Re{e µ }) = (1+ε) β . (29)
+φ 20 φ
+2
+For circular constellations (µ = 0): β = β = 1/2. For
+20 ε φ
+2
+BPSK (µ = 1, φ small): β ≈ 2φ ≈ 0 while β ≈ 1,
+20 ε φ
+consistent with the large [J] in Remark 2. The IQ cross-term
+φφ
+E ∗ 1+ε −2jφ
+[δ δ ] vanishes when µ = 0 and equals Im{e µ }
+ε φ 20 2 20
+E 2 E 6
+in general. For the PA sub-block, [|δ | ] = [|x| ] = µ in
+α 6
+3R
+the small-impairment limit, giving J = µ I . For constant-
+PA 6 2
+modulus constellations, µ = 1. The PA-IQ cross-coupling at
+6
+E ∗ 2 e −jφ
+ε = 0 gives [δ · |x| x] = µ for circular constellations
+ε 2 4
+E 2 2
+( [|x| x ] = 0 by symmetry). Collecting real parts yields (8)–
+□
+(13).
+IEEE TRANSACTIONS ON INFORMATION FORENSICS AND SECURITY
+R
+EFERENCES
+[1] P. Yue, J. An, J. Zhang, J. Ye, G. Pan, S. Wang, P. Xiao, and L. Hanzo,
+“Low Earth orbit satellite security and reliability: Issues, solutions, and
+the road ahead,” IEEE Commun. Surveys Tuts., vol. 25, no. 3, pp. 1604–
+1652, 2023.
+[2] E. S. Lohan, R. T. Iacob, and O. Enescu, “A survey of spoofer detection
+techniques via radio frequency fingerprinting with focus on the GNSS
+pre-correlation sampled data,” Sensors, vol. 21, no. 9, p. 3012, 2021.
+[3] B. Danev, H. Luecken, S. Capkun, and K. El Defrawy, “Attacks
+on physical-layer identification,” in Proc. ACM Conf. Wireless Netw.
+Security (WiSec), 2010, pp. 89–98.
+[4] A. C. Polak, S. Dolatshahi, and D. L. Goeckel, “Identifying wireless
+users via transmitter imperfections,” IEEE J. Sel. Areas Commun.,
+vol. 29, no. 7, pp. 1469–1479, 2011.
+[5] J. Smailes, S. Ko¨hler, S. Birnbach, M. Strohmeier, and I. Martinovic,
+“Watch This Space: Securing satellite communication through resilient
+transmitter fingerprinting,” in Proc. ACM SIGSAC Conf. Comput. Com-
+mun. Security (CCS), 2023, pp. 608–621.
+[6] ——, “SatIQ: Extensible and stable satellite authentication using hard-
+ware fingerprinting,” ACM Trans. Privacy Security, vol. 29, no. 1, 2025.
+[7] G. Oligeri, S. Sciancalepore, S. Raponi, and R. Di Pietro, “PAST-AI:
+Physical-layer authentication of satellite transmitters via deep learning,”
+IEEE Trans. Inf. Forensics Security, vol. 18, pp. 274–289, 2023.
+[8] C. Solenthaler, J. Smailes, and M. Strohmeier, “OrbID: Identifying
+orbcomm satellite RF fingerprints,” in Proc. Workshop Security Space
+Satellite Syst. (SpaceSec), 2025.
+[9] J. Zhang, R. Woods, M. Sandell, M. Valkama, A. Marshall, and
+J. Cavallaro, “Radio frequency fingerprint identification for narrowband
+systems, modelling and classification,” IEEE Trans. Inf. Forensics Secu-
+rity, vol. 16, pp. 3974–3987, 2021.
+[10] S. Rajendran and Z. Sun, “RF impairment model-based IoT physical-
+layer identification for enhanced domain generalization,” IEEE Trans.
+Inf. Forensics Security, vol. 17, pp. 1285–1299, 2022.
+[11] G. Shen, J. Zhang, A. Marshall, and J. R. Cavallaro, “Towards scalable
+and channel-robust radio frequency fingerprint identification for LoRa,”
+IEEE Trans. Inf. Forensics Security, vol. 17, pp. 774–787, 2022.
+[12] G. Shen, J. Zhang, A. Marshall, M. Valkama, and J. R. Cavallaro,
+“Toward length-versatile and noise-robust radio frequency fingerprint
+identification,” IEEE Trans. Inf. Forensics Security, vol. 18, pp. 2355–
+2367, 2023.
+[13] H. Luo, G. Li, A. Brighente, M. Conti, Y. Xing, A. Hu, and X. Wang,
+“Channel-robust RF fingerprint identification for multi-antenna 5G user
+equipments,” IEEE Trans. Inf. Forensics Security, vol. 20, pp. 10 761–
+10 776, 2025.
+[14] J. Zhang, F. Ardizzon, M. Piana, G. Shen, and S. Tomasin, “Physical
+layer-based device fingerprinting for wireless security: From theory to
+practice,” IEEE Trans. Inf. Forensics Security, vol. 20, pp. 5296–5325,
+2025.
+[15] P. Zhang, J. Liu, Y. Shen, and X. Jiang, “Exploiting channel gain and
+phase noise for PHY-layer authentication in massive MIMO systems,”
+IEEE Trans. Inf. Forensics Security, vol. 16, pp. 4265–4279, 2021.
+[16] Y. Liu, P. Zhang, J. Liu, Y. Shen, and X. Jiang, “Exploiting fine-grained
+channel/hardware features for PHY-layer authentication in MmWave
+MIMO systems,” IEEE Trans. Inf. Forensics Security, vol. 18, pp. 4059–
+4074, 2023.
+[17] K. Sankhe, M. Belgiovine, F. Zhou, S. Riyaz, S. Ioannidis, and
+K. Chowdhury, “ORACLE: Optimized radio classification through con-
+volutional neural networks,” in Proc. IEEE INFOCOM, 2019, pp. 370–
+378.
+[18] P. Robyns, E. Marin, W. Lamotte, P. Quax, D. Singele´e, and B. Preneel,
+“Physical-layer fingerprinting of LoRa devices using supervised and
+zero-shot learning,” in Proc. ACM Conf. Security Privacy Wireless
+Mobile Netw. (WiSec), 2017, pp. 58–63.
+[19] T. Jian, B. C. Rendon, E. Ojuba, N. Y. Soltani, Z. Wang, K. Sankhe,
+A. Gritsenko, J. G. Dy, K. R. Chowdhury, and S. Ioannidis, “Deep
+learning for RF fingerprinting: A massive experimental study,” IEEE
+Internet Things Mag., vol. 3, no. 1, pp. 50–57, 2020.
+[20] A. Jagannath, J. Jagannath, and P. S. P. V. Kumar, “A comprehensive
+survey on radio frequency (RF) fingerprinting: Traditional approaches,
+deep learning, and open challenges,” Comput. Netw., vol. 219, p. 109455,
+2022.
+[21] Q. Xu, R. Zheng, W. Saad, and Z. Han, “Device fingerprinting in wire-
+less networks: Challenges and opportunities,” IEEE Commun. Surveys
+Tuts., vol. 18, no. 1, pp. 94–104, 2016.
+13
+[22] L. Senigagliesi, M. Baldi, and E. Gambi, “Comparison of statistical and
+machine learning techniques for physical layer authentication,” IEEE
+Trans. Inf. Forensics Security, vol. 16, pp. 1506–1521, 2021.
+[23] 3GPP, “Study on New Radio (NR) to support non-terrestrial networks,”
+3rd Generation Partnership Project, Tech. Rep. TR 38.811 v15.4.0, 2020.
+[24] C. Loo, “A statistical model for a land mobile satellite link,” IEEE Trans.
+Veh. Technol., vol. VT-34, no. 3, pp. 122–127, 1985.
+[25] J. Smailes, E. Salkield, S. Ko¨hler, S. Birnbach, M. Strohmeier, and
+I. Martinovic, “Sticky Fingers: Resilience of satellite fingerprinting
+against jamming attacks,” in Proc. 2nd Workshop Security Space Satellite
+Syst. (SpaceSec), 2024.
+[26] Chaos Computer Club Mu¨nchen, “gr-iridium: Iridium burst detector and
+demodulator,” https://github.com/muccc/gr-iridium, 2024.
+[27] O. A. Topal and G. Karabulut Kurt, “Physical layer authentication for
+LEO satellite constellations,” in Proc. IEEE Wireless Commun. Netw.
+Conf. (WCNC), Austin, TX, USA, Apr. 2022, pp. 1952–1957.
+[28] S. M. Kay, Fundamentals of Statistical Signal Processing: Estimation
+Theory. Prentice Hall, 1993, vol. 1.
+[29] H. L. Van Trees, Detection, Estimation, and Modulation Theory, Part I:
+Detection, Estimation, and Linear Modulation Theory. John Wiley &
+Sons, 1968.
+[30] H. Crame´r, Mathematical Methods of Statistics. Princeton Univ. Press,
+1946.
+[31] T. C. W. Schenk, RF Imperfections in High-Rate Wireless Systems:
+Impact and Digital Compensation. Springer, 2008.
+[32] A.-A. A. Boulogeorgos, P. C. Sofotasios, B. Selim, S. Muhaidat,
+G. K. Karagiannidis, and M. Valkama, “Effects of RF impairments
+in communications over cascaded fading channels,” IEEE Trans. Veh.
+Technol., vol. 65, no. 11, pp. 8878–8894, 2016.
+[33] L. Anttila, M. Valkama, and M. Renfors, “Circularity-based I/Q im-
+balance compensation in wideband direct-conversion receivers,” IEEE
+Trans. Veh. Technol., vol. 57, no. 4, pp. 2099–2113, 2008.
+[34] A. A. M. Saleh, “Frequency-independent and frequency-dependent non-
+linear models of TWT amplifiers,” IEEE Trans. Commun., vol. 29,
+no. 11, pp. 1715–1720, 1981.
+[35] C. Rapp, “Effects of HPA-nonlinearity on a 4-DPSK/OFDM-signal for
+a digital sound broadcasting system,” in Proc. 2nd European Conf.
+Satellite Commun. (ECSC-2), 1991, pp. 179–184.
+[36] N. Xie, J. Chen, and L. Huang, “Physical-layer authentication using
+multiple channel-based features,” IEEE Trans. Inf. Forensics Security,
+vol. 16, pp. 2356–2366, 2021.
+[37] S. S. Hanna and D. Cabric, “Deep learning based transmitter identi-
+fication using power amplifier nonlinearity,” in Proc. IEEE Int. Conf.
+Computing, Networking and Commun. (ICNC), Honolulu, HI, USA, Feb.
+2019, pp. 674–680, best Paper Award.
+[38] S. M. Kay, Fundamentals of Statistical Signal Processing: Detection
+Theory. Upper Saddle River, NJ: Prentice Hall, 1998, vol. 2.
+[39] E. L. Lehmann and G. Casella, Theory of Point Estimation, 2nd ed., ser.
+Springer Texts in Statistics. New York: Springer-Verlag, 1998.
+[40] P. Stoica and R. L. Moses, Spectral Analysis of Signals. Upper Saddle
+River, NJ: Pearson Prentice Hall, 2005.
+[41] K. Maine, C. Devieux, and P. Swan, “Overview of IRIDIUM satellite
+network,” in Proc. WESCON, 1995, pp. 483–490.
+[42] R. Luo, X. Chen, Z. Wu, and Y. Li, “Ambiguity function analysis of
+iridium burst transmissions for opportunistic navigation,” Electron. Lett.,
+vol. 59, no. 21, p. e12989, 2023.
+[43] A. Bhattacharyya, “On a measure of divergence between two statistical
+populations defined by their probability distributions,” Bull. Calcutta
+Math. Soc., vol. 35, pp. 99–109, 1943.
+[44] G. Casella and R. L. Berger, Statistical Inference, 2nd ed.
+Duxbury/Thomson Learning, 2002.
+[45] G. Oligeri, S. Sciancalepore, and R. Di Pietro, “Physical-layer data
+of IRIDIUM satellites broadcast messages,” Data in Brief, vol. 46, p.
+108905, 2023.

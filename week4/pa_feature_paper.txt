@@ -1,0 +1,837 @@
+An Investigation of Power Amplifier Feature for
+Deep Learning Based RF Fingerprint Identification
+∗ ∗† ‡ ∗†
+Wentao Jing , Linning Peng , Junqing Zhang , and Hua Fu
+∗
+School of Cyber Science and Engineering, Southeast University, Nanjing, China
+†
+Purple Mountain Laboratories for Network and Communication Security, Nanjing, China
+‡
+Department of Electrical Engineering and Electronics, University of Liverpool, Liverpool, United Kingdom
+{ }
+Email: wentaojing, pengln, hfu @seu.edu.cn, junqing.zhang@liverpool.ac.uk
+Abstract
+—Radio frequency fingerprint identification (RFFI) WiFi [4], [5], ZigBee [6], long-term evolution (LTE) [7], and
+employs unique hardware impairments for device authentication.
+LoRa [8]–[10], etc.
+Power amplifier (PA) nonlinearity is an important hardware
+Deep learning has been widely used in RFFI due to its
+impairment feature, which has been widely used for RFFI.
+excellent ability to automatically extract features [3], [11],
+In this paper, we modeled and estimated PA parameters and
+[12]. Deep learning significantly pushes the boundary of RFFI
+studied their effects on RFFI. In particular, a memory polynomial
+model was used to capture the detailed features of PA, involving since it was first adopted in the community [8]. However, deep
+polynomial order, memory depth and coefficient matrix. These
+learning-based RFFI treats the hardware impairments as black
+parameters are twisted and we designed grid search and deep
+box and does not distinguish their individual contributions.
+learning-based algorithms to find optimal parameters, with a
+Studying their contribution to RFFI is significant, based on
+tradeoff of computational complexity and RFFI classification
+which we can categorize these features into irrelevant features,
+accuracy. We created a testbed consisting of 60 IEEE 802.15.4
+devices and a universal software radio peripheral (USRP) X310 weak features, and strong features.
+software-defined radio (SDR) platform as the receiver. The PA
+There are various features of signals from wireless devices
+function of our devices can be disabled when needed, which
+such as carrier frequency offset (CFO), I/Q gain imbalance,
+allowed us to generate signals with and without PA features.
+and power amplifier (PA) feature [13]. Among these impair-
+Experimental results demonstrated that our proposed algorithms
+ments, PA nonlinearity has been widely used for RFFI. Fu et
+can estimate the PA parameters. Simulated signals with the
+estimated PA parameters were also demonstrated to retain the al. [14] proposed an RFFI method to eliminate the channel
+PA features accurately.
+effect with nonlinear features with memory effect, which gets
+Index Terms
+—Radio frequency fingerprint identification, deep
+92.92% average identification accuracy in 22 IEEE 802.11
+learning, power amplifier.
+devices. Besides, Li et al. [15] utilized eight PAs to study
+RFF and achieved 92% of average classification accuracy
+I. I
+NTRODUCTION
+when signal to noise ratio (SNR) was 10 dB. Furthermore,
+Device authentication is the first step to ensure wireless
+Li et al. [16] used a physical unclonable function (PUF) to
+security, which authenticates device identities when they want
+dynamically tune the PA feature, which enlarged the RFF
+to join the network. Traditionally, it is handled by crypto-
+feature differences among the wireless devices. Therefore,
+graphic approaches [1]. However, these approaches tend to be
+according to previous studies, the PA feature is an essential
+computationally expensive and may not be suitable for low-
+feature in RFFI, which is valuable in further research.
+cost internet of things (IoT) devices that usually have limited
+There are many PA models including both memoryless mod-
+computational resources [2]. In addition, device addresses such
+els and models with memory effects, such as Saleh model [17],
+as media access control (MAC) addresses are usually used for
+Wiener-Hammerstein [18], memory polynomial model [19],
+device identification. However, these addresses can be easily
+and generalized memory polynomial model [20]. There are
+altered. Therefore, there is an urgent need for lightweight
+existing works to model PA behavior with the memoryless
+device authentication for IoT.
+nonlinear model for RFFI [13]. While memoryless models are
+Radio frequency fingerprint identification (RFFI) emerged
+simple, they may not capture all the PA features. Instead, the
+as a promising candidate [3]. RFFI relies on hardware impair-
+memory effect appears on real PAs. Therefore, it is meaningful
+ments that result from imperfections during the manufacturing
+to build a PA model with the memory effect and estimate
+process. These impairments are unique and stable, which can
+related parameters.
+be used as device identifiers, in a similar way as biometric fin-
+In this paper, we performed a comprehensive modelling
+gerprints. RFFI protocols can be implemented at the receiver
+and estimation of PA parameters for RFFI and carried out
+end and do not require any modification to the IoT transmitter.
+experimental evaluation. The memory polynomial model was
+Hence, it can be readily applied to any IoT systems including
+used, consisting of the polynomial order, memory depth, and
+legacy ones. Therefore, RFFI has been widely studied with
+coefficient matrix. We designed algorithms to estimate their
+values and used these values to simulate/generate new signals.
+Lining Peng is the corresponding author. This work was supported in part
+We created a testbed using 60 IEEE 802.15.4 and a universal
+by the National Natural Science Foundation of China under Grant 62171120.
+16925111.5202.21856SPHSKWMOCOFNI/9011.01
+:IOD
+|
+EEEI
+5202©
+00.13$/52/9-0734-5133-8-979
+|
+)SPHSKW
+MOCOFNI(
+spohskroW
+snoitacinummoC
+retupmoC
+no
+ecnerefnoC
+EEEI
+-
+
+MOCOFNI
+EEEI
+Authorized licensed use limited to: Southeast University. Downloaded on December 08,2025 at 09:42:03 UTC from IEEE Xplore. Restrictions apply.
+Wiener-Hammerstein [18], memory polynomial model [19],
+Signal and generalized memory polynomial model [20]. With the
+DUT 1 Training
+Collection
+Training consideration of the memory effect and complexity of various
+Dataset Trained NN
+PA models, we utilize the memory polynomial model as the
+DUT n
+Receiver
+PA model with lower parameters of complexity and memory
+effect, which can be described by
+Training Stage
+DUT N
+D
+(cid:2)K (cid:2)M
+k−1
+y[n] = a x[n − m] |x[n − m]| ,
+(1)
+Signal Predicted k,m
+Collection Label
+k=1 m=0
+y[n]
+where is the output of the signal passed through the PA,
+DUT n Receiver Inference Stage
+x[n] N K
+is the input signal to the PA with a length of .
+M
+and represent the polynomial order and the memory depth,
+Fig. 1. Deep learning-based RFFI.
+a
+respectively. is the Volterra kernel of the PA, and these
+k,m
+a ∈ CK(M+1)×1
+form a Volterra kernel vector , which can be
+software radio peripheral (USRP) X310 software-defined radio
+described by
+(SDR) platform. Our experimental results demonstrated that a = [a , · · · , a ] T
+(2)
+1 K
+our algorithms can replicate the PA features accurately. Our
+with
+contributions are listed as follows:
+T
+a = [a , · · · , a ] .
+(3)
+k k,0 k,M
+• We adopted the memory polynomial model with poly-
+nomial order, memory depth, and coefficient matrix. We
+III. E PA P
+STIMATION OF ARAMETERS
+used a grid search to estimate the polynomial order. We
+A. Overview
+then employed a deep learning-based RFFI model to
+As can be shown in (1), there are three parameters need
+obtain the optimal memory depth. The coefficient can
+{K, M, a}
+to be determined, , which will be estimated in this
+then be calculated accordingly.
+ˆ ˆ
+{K, M , a˜}
+section. The estimated parameters are given as .
+• Signals with and without PA features were collected,
+ˆ ˆ
+K M a˜
+The values of , , and are twisted with each other. In
+which were used to estimate the PA parameters and
+the following two sections, we will explain how to estimate
+generate/simulate new signals with PA features. This was
+ˆ ˆ ˆ
+K M K M
+and . We will first estimate by iterating various
+feasible as the PA of the selected IEEE 802.15.4 devices
+ˆ
+K
+values. Once is estimated, it is fixed. We can then focus on
+can be disabled.
+ˆ
+M
+estimating .
+• We carried out a comprehensive experimental evaluation.
+K M a˜
+Given and , the corresponding can be calculated by
+When using the simulated signals as training dataset and
+the least squares method as
+real collected signals as test dataset, the deep learning
+model can achieve 99.92% classification accuracy, which a˜ = (X T X) −1 X T y˜,
+(4)
+demonstrated that the simulated signals retain the PA
+y˜ ∈ C(N−M)×1
+where is the vector of the collected output
+features accurately.
+X ∈ C(N−M)×K(M+1)
+signals with PA features. is the input
+The remainder of this paper is organized as follows. Sec-
+signal matrix, which can be described by
+tion II briefly introduces RFFI and PA model. In Section III,
+(cid:3) (cid:4)
+the estimation algorithms are elaborated. The experimental X = X · · · X ,
+(5)
+1 K
+setup and results are given in Section IV and Section V,
+X ∈ C(N−M)×(M+1) X
+where , and can be described by
+respectively. Section VI concludes the paper. k k
+⎡ ⎤
+χk · · · χk
+II. RFFI P P A M
+RIMER AND OWER MPLIFIER ODEL M+1 1
+⎢ ⎥
+. . .
+X = ⎣ . . . ⎦ , N > M + 1 (6)
+A. RFFI k . . .
+χk · · · χk
+RFFI utilizes the hardware impairments from the manufac-
+N N−M
+turing imperfections of devices for identification. As shown in
+with
+N
+Fig. 1, there are devices under test (DUTs) and a receiver. k k−1
+D χ = x[n] |x[n]| .
+(7)
+n
+A deep learning-based RFFI approach involves training and
+K
+B. Estimation of Polynomial Order
+inference stages. In the training stage, a receiver constructs a
+training dataset with signals from all DUTs. A deep learning K
+We adopted a method to grid search the proper and
+model is then trained. In the inference stage, the trained deep M K M i j
+[21]. Firstly, it defines and , where and represent
+i j
+learning model will make a prediction of the device identity K M
+the index of the different and , respectively, in the grid
+based on the received signal. a˜ij ∈ CK (M +1)×1
+search process. We can calculate i j by (4),
+Xij ∈ C(N−M )×K (M +1)
+and j i j by (5). Then, we generate
+B. PA Model
+y¯ij
+simulated frame signal , which can be described by
+PA has abundant nonlinear features which are suitable for
+y¯ij
+= X
+ij a˜ij
+,
+RFFI. There are many PA models such as Saleh model [17], (8)
+Authorized licensed use limited to: Southeast University. Downloaded on December 08,2025 at 09:42:03 UTC from IEEE Xplore. Restrictions apply.
+
+
+
+
+
+
+
+
+1 2 3 4 5 6 7 8
+Polynomial order
+htped
+yromeM
+
+0.6
+
+
+0.599
+
+0.598
+
+0.597 300
+
+0.596
+
+1 2 3 4 5 6 7 8
+Polynomial order
+(a)
+htped
+yromeM
+ReLu+
+0.24
+Dropout
+ReLu+
+(50%)
+Dropout
+0.235
+(50%)
+Softmax
+0.23
+0.225
+0.22 1280x2
+0.215 Input Layer
+Conv+ReLu Conv+ReLu
+Output Layer
+(50x1x7) (50x2x7) FC
+(80)
+FC
+(b)
+(256)
+K M
+Fig. 2. Values of RMS error distribution against and . (a) Device a
+with memory depth from 1 to 8. (b) Device b with memory depth from 100
+to 800 (with a step of 100). Fig. 3. CNN architecture.
+y¯ij ∈ C(N−M )×1 y˜ r
+where j , which is the simulation for with Finally, we utilize a vector to present the mean of the
+K M ri Q
+and . each with frames, which can be described by
+i j
+q
+y¯ij
+(cid:13) (cid:14)
+According to the , we can calculate the difference
+(cid:2)Q (cid:2)Q
+eij nth eij eij[n] 1 1
+vector . The element of , denoted as , can
+1 I
+r = r , . . . , r .
+(13)
+q q
+Q Q
+be described by
+q=1 q=1
+| y˜[n] − y¯ij[n] |
+r
+e ij [n] = , According to the result that the trend of related to polynomial
+(9)
+| y˜[n] | ˆ
+K K
+order, we can get the measured optimal , namely .
+y˜[n] y¯ij[n] n y˜ y¯ij
+where and are the -th element of and M
+C. Estimation of Memory Depth
+eij[n] y˜[n]
+respectively. represents differences between and
+M
+We used a different method to estimate . Specifically, we
+y¯ij[n]
+in the time domain.
+ˆ
+K
+utilize (8) with predetermined polynomial order and varying
+Then, we computes error of Root-Mean-Square (RMS) for
+M y¯ l
+memory depth to generate simulated frame , where is
+eij l
+, which can be described by
+the index of the varying memory depth. Considering there are
+(cid:11)
+N N
+1 (cid:12) devices, we generate frames for each device. These
+D f
+r ij = N−M j (eij[n]) 2 ,
+(10)
+n=1 frames are then used to train a CNN model for RFFI. We
+N − M
+j
+utilize the accuracy of the CNN-based identification to eval-
+r K M
+With this method, we can get with respect to and . uate the performance of simulation with varying parameters
+i j
+Fig. 2 exemplifies values of RMS errors. for exploring proper parameters. Because the purpose of this
+Then, we utilize multiple frames from multiple devices to paper is to generate simulated frames using the estimated PA
+generate the results that the value of RMS error distribution parameters for RFFI, using this approach can ensure that the
+K M
+against and . By these results, we utilize dimensionality generated frames can replicate the intrinsic PA features.
+reduction algorithm to generate a result that RMS related to A CNN architecture proposed by [22] is used in this paper,
+polynomial order, including (11), (12), and (13). which is illustrated in Fig. 3. The input is I/Q samples with
+⎡ ⎤
+1280 × 2
+a size of . The CNN model consists of two 2-D
+r11 . . . rI1
+q q
+convolutional layers followed by a batch normalization (BN)
+⎢ ⎥
+. . .
+R = ⎣ . . . ⎦ , (11)
+q . . . layer and a maxpooling layer, and the last one of them is
+r1J · · · rIJ
+connected to two fully connected layers. ReLu function is
+q q
+adopted to activate convolutional layers and fully connected
+R K M
+where is the result of RMS distribution against and .
+q
+layers, while the softmax function is utilized at the end of
+q
+is the index of the RMS distribution result generated from the
+the structure. Each fully connected layers followed by a 50%
+q M ∈ [M , M ] K ∈ [K , K ]
+-th collected signal frame. , ,
+j 1 J i 1 I
+dropout layer to prevent overfitting.
+M M M
+and and are 1 and 8 respectively in Fig. 2a, and ˆ
+1 J 1 K M
+Given and , the CNN accuracy is expressed as
+l
+M K K
+are 100 and 800 respectively in Fig. 2b, and and (cid:15) (cid:16)
+J 1 I
+ˆ
+are 1 and 8 in Fig. 2. Θ = θ(K, M ) | l ∈ [1, L] ,
+(14)
+l
+We then sum each column, given as
+We can then search the expected identification accuracy in the
+(cid:2)J
+Θ
+set , namely the expected performance of simulation, and
+i ij
+r = r
+(12)
+q q M M
+find the corresponding , which is estimated optimal ,
+l
+j=1 ˆ
+M
+namely . The expected performance of the simulation is
+ri i R
+where is the sum of -th column in . In this way, we generated from the identification accuracy with real frames,
+q q
+K
+can focus on the effect of for now. which is approaching accuracy in reality.
+Authorized licensed use limited to: Southeast University. Downloaded on December 08,2025 at 09:42:03 UTC from IEEE Xplore. Restrictions apply.
+Signal with PA Signal without PA
+Attenuator
+ZigBee
+Parameters Signal
+estimation generation
+Parameters
+Device Polynomial Memory depth Coefficient (ã)
+order (K) (M)
+Coaxial cable 1 3 800 â
+USRP X310 Signal without PA 1
+… 3 800 …
+60 3 800 â
+
+Fig. 4. Signal collection scenario. Fig. 5. Estimation of PA parameters and signal generation.
+TABLE I
+a˜
+D. Estimation of Coefficients
+P
+ARAMETERS OF SIGNALS COLLECTION SCENARIO
+ˆ
+K
+Once the optimal polynomial order and optimal memory
+RF USRP
+ˆ PA Status
+M
+depth are obtained, we can utilize (4) to calculate the Attenuator Value Receive Gain
+a˜
+corresponding Volterra kernel vector . We measure multiple PA disabled 30 dB 75 dB
+a˜
+signals for each device, so the optimal is selected which 15 level (Maximum) 60 dB 65 dB
+y˜
+corresponds to the minimum error of RMS with .
+0.07
+IV. E S
+XPERIMENTAL ETUP
+0.05
+This paper used IEEE 802.15.4 as a case study. Specifically,
+0.03
+N =
+we employed 60 commercial-off-the-shelf (COTS)
+D 0.01
+
+devices and Universal Software Radio Peripheral (USRP)
+-0.01
+software-defined radio (SDR) X310 as the receiver platform,
+-0.03
+as shown in Fig. 4.
+-0.05
+• All devices comply with the IEEE 802.15.4 Physical layer -0.07
+1611 1621 1631 1641 1651 1661 1671 1681 1691 1701 1711 1721
+(PHY) protocol. They send signal frames that of physical
+Sample index
+service data unit (PSDU) is full of 0, so all collected
+frames keep the same data.
+• The USRP X310 platform is interfaced using GNU radio.
+Once the signals are collected, they are transferred to a
+PC for signal processing using Matlab, which includes
+synchronization, carrier phase offset compensation, car-
+rier frequency offset compensation, and normalization.
+The sampling rate in the collection scenario is 10 MS/s.
+Fig. 5 portrays the PA estimation and signal generation.
+As observed in (1), both the input and output signals of the
+PA are required. The devices that we selected allowed us to
+disable the PA manually, which can produce signals without
+PA features. When the PA is enabled, signals with PA features
+can be generated. In particular, we configured the device with
+the maximum transmission power, which is 15-level in the
+setting.
+In order to focus on the PA features and avoid channel
+effects, we designed a cabled experiment for signal collection,
+shown in Fig. 4. We directly connected USRP X310 and the
+ZigBee devices using a radio frequency (RF) coaxial cable and
+an attenuator. When the PA is disabled, we set USRP X310
+with a high receive gain. A detailed information is illustrated
+in Table I.
+We collected 60 signal frames with PA and without PA,
+respectively, for each device. A segment of the signal frame
+trap
+laeR
+Fig. 6. 50 Signals from the same device.
+with PA is shown in Fig. 6. There are small fluctuations in
+these signals, but the differences are not significant, which
+demonstrates that PA features are stable within a certain period
+of time.
+V. E R
+XPERIMENTAL ESULTS
+We carried out multiple experiments to search for the
+K
+optimal parameters, including polynomial order , memory
+M a˜
+depth , and Volterra kernel vector .
+K
+A. Polynomial Order
+K
+We utilized 10 frames from each device to estimate ,
+totaling 600 frames. We used the entire part of the frame
+to take grid search by (8), (9), and (10), which can get 600
+K M
+values of RMS error distribution against and . Therefore,
+we can use dimensionality reduction algorithm including (11),
+(12), and (13) with values of RMS error distributions.
+r
+In Fig. 7, we plot trends of versus memory depth.
+b
+It can be observed that the values of do not decrease
+K
+significantly when is larger than 3. Meanwhile, considering
+K
+the computational complexity caused by the increase of , we
+ˆ
+K
+chose as 3 in the following of this paper.
+Authorized licensed use limited to: Southeast University. Downloaded on December 08,2025 at 09:42:03 UTC from IEEE Xplore. Restrictions apply.
+3.53
+3.52
+3.51
+3.5
+3.49
+1 2 3 4 5 6 7 8
+Polynomial order
+(cid:1)
+3.017
+3.014
+3.01
+3.005
+3.4897
+3.001
+
+1 2 3 4 5 6 7 8
+Polynomial order
+(a)
+(cid:1)
+
+
+
+
+
+3.0014
+
+100 200 300 400 500 600 700 800 900 1000 1100 1200
+Memory depth
+(b)
+r
+Fig. 7. Relationship between and polynomial order with (a) memory depth
+from 1 to 8 and (b) memory depth from 100 to 800.
+M
+B. Memory Depth
+We used 50 signal frames from each device to estimate
+ˆ
+M K = 3 M
+. We simulated frames with fixed and varying
+from 100 to 1200 with a step of 100 by (8). By this way, we
+generated massive datasets of simulated frames for evaluation.
+We selected 16 real frames for each of the 60 devices.
+Meanwhile, we simulated 16 real frames from the collected 50
+frames for each device, and enlarged them to 800 frames as the
+training set, 192 frames as a validation set with adding noise
+of the 40 dB SNR for each device. We selected 30 frames
+from the rest of the real frames that do not overlap with the
+simulated frames in the training set and validation set. Using
+data augmentation by adding noise with SNR level of 40 dB,
+these 30 frames are enlarged to 120 frames per device, which
+forms the test set. In this way, we can evaluate whether the
+simulated frames possess the PA features.
+After the signals are generated/simulated, we used the signal
+segment from samples 1601 to 2881 as input to CNN. As the
+signal has both real and imaginary parts, the segmented IQ
+×
+samples have a size of 1280 2.
+We set the initial learning as 0.00001, the optimizer as
+Adam, and the maximum epochs as 250 to make the model
+converge better. In addition, the mini-batch size is 256, the
+validation frequency is 50, and each experiment takes 11 times
+training and tests for the median as a result. Besides, we use
+the early stop method and dropout layer to prevent overfitting.
+The experimental results are demonstrated in Fig. 8. We
+ˆ
+M
+selected as 800, with a consideration of accuracy and
+computational complexity.
+a˜
+C. Coefficient Matrix
+We utilized 50 collected real frames for each device. We
+ˆ ˆ
+aˆ K = 3 M = 800
+used (4) to calculate with and . Then, we
+utilize (8) to generate simulated frames and calculate RMS
+between real frames and simulated frames by (9) and (10).
+Searching the frames with the lowest RMS, we can find the
+aˆ
+optimal Volterra kernel vector for each device to represent
+the device.
+aˆ
+Besides, we convert the Volterra kernel vector to a matrix
+ˆ ˆ
+(M + 1) × K × aˆ
+with a size of , i.e., 801 3. The color map of
+of two devices are depicted in Fig. 9. For a better illustration
+)%(ycarucca
+noitacifitnedI
+99.92
+Fig. 8. Identification accuracy with 60 devices and varying memory depth.
+
+
+
+
+1 2 3
+Polynomial order
+htped
+yromeM
+
+200 0.5
+400 0
+600 -0.5
+
+-1
+1 2 3
+Polynomial order
+(a)
+htped
+yromeM
+
+0.5
+
+-0.5
+-1
+(b)
+aˆ
+Fig. 9. Parameters distribution of between two devices. (a) Device a. (b)
+Device b.
+0.07
+0.05
+0.03
+0.01
+
+-0.01
+-0.03
+-0.05
+-0.07
+1611 1621 1631 1641 1651 1661 1671 1681 1691 1701 1711 1721
+Sample index
+trap
+laeR
+(cid:1)(cid:1)
+(cid:1)
+y[n] y˜[n]
+Fig. 10. Comparison between and .
+aˆ
+effect, we only showed the real part and scale values in to
+the range [-1, 1]. The distribution of values close to 1 and
+-1 is different between the two devices, and most values are
+around 0.
+D. Performance of Signal Generation
+ˆ ˆ
+aˆ K M
+According to , , measured from 60 IEEE 802.15.4
+device, we can use (8) to generate a simulated signal. As
+y[n]
+exemplified in Fig. 10, the generated waveform, , matches
+y˜[n]
+with the real collected signal, , very well.
+We constructed a few datasets for evaluation, as summarized
+α β
+in Table II. The subscripts and indicate the two datasets
+consisting of frames 1-16 and frames 17-46 out of the 60 col-
+real
+lected signals, respectively. Besides, the superscripts, and
+sim
+, indicate real frames and simulated frames, respectively.
+Authorized licensed use limited to: Southeast University. Downloaded on December 08,2025 at 09:42:03 UTC from IEEE Xplore. Restrictions apply.
+TABLE II [3] L. Xie, L. Peng, J. Zhang, and A. Hu, “Radio frequency fingerprint
+D C identification for internet of things: A survey,” Security and Safety,
+ATASET ONSTRUCTION
+vol. 3, p. 2023022, 2024.
+[4] R. Kong and H. Chen, “DeepCRF: Deep learning-enhanced CSI-based
+Datasets Frame index range Type
+RF fingerprinting for channel-resilient WiFi device identification,” IEEE
+Dsim
+1-16 Simulated frames
+α
+Trans. Inf. Forensics Security, vol. 20, pp. 264–278, 2025.
+Dreal
+[5] L. Xie, L. Peng, and J. Zhang, “Towards robust RF fingerprint identi-
+1-16 Real frames
+α
+fication using spectral regrowth and carrier frequency offset,” in Proc.
+Dreal
+17-46 Real frames
+β IEEE INFOCOM, 2025.
+[6] J. Shi, L. Peng, H. Fu, and A. Hu, “Robust rf fingerprint extraction
+based on cyclic shift characteristic,” IEEE Internet Things J., vol. 10,
+TABLE III
+no. 21, pp. 19 218–19 233, Nov. 2023.
+E
+XPERIMENTAL RESULTS OF PERFORMANCE ANALYSIS
+[7] L. Peng, H. Peng, H. Fu, and M. Liu, “Channel-robust radio frequency
+fingerprint identification for cellular uplink lte devices,” IEEE Internet
+Index Training and validation set Test set Median of accuracy
+Things J., 2024.
+Dreal Dreal
+[8] P. Robyns, E. Marin, W. Lamotte, P. Quax, D. Singele´e, and B. Preneel,
+1 100.00%
+α β
+“Physical-layer fingerprinting of LoRa devices using supervised and
+Dsim Dreal
+2 100.00%
+α α
+zero-shot learning,” in Proc. ACM Conf. Security and Privacy in Wireless
+Dsim Dreal
+and Mobile Networks (WiSec), 2017, pp. 58–63.
+3 99.92%
+α β
+[9] A. Al-Shawabka, P. Pietraski, S. B. Pattar, F. Restuccia, and T. Melodia,
+“DeepLoRa: Fingerprinting LoRa devices at scale through deep learning
+and data augmentation,” in Proc. Int. Symp. Theory, Algorithmic Founda-
+We carried out three different evaluations and the results
+tions, and Protocol Design for Mobile Networks and Mobile Computing
+are given in Table III. For each evaluation, we performed (MobiHoc), Shanghai, China, Jul. 2021, pp. 251–260.
+[10] G. Shen, J. Zhang, A. Marshall, and J. R. Cavallaro, “Towards scalable
+11 experiments and used the median value. Test 1 achieves
+and channel-robust radio frequency fingerprint identification for LoRa,”
+100% accuracy with CNN-based identification, which is valid
+IEEE Trans. Inf. Forensics Secur., vol. 17, pp. 774–787, 2022.
+as the SNR of the real collected signals is very high. Test [11] T. Jian, B. C. Rendon, E. Ojuba, N. Soltani, Z. Wang, K. Sankhe,
+A. Gritsenko, J. Dy, K. Chowdhury, and S. Ioannidis, “Deep learning
+2 also achieves 100% accuracy, when the training and test
+for rf fingerprinting: A massive experimental study,” IEEE Internet of
+datasets are simulated frames and real frames, respectively.
+Things Magazine, vol. 3, no. 1, pp. 50–57, 2020.
+They are based on the same frames 1-16. Finally, Test 3 [12] T. Zhao, X. Wang, and S. Mao, “Cross-domain, scalable, and inter-
+pretable rf device fingerprinting,” in IEEE INFOCOM 2024 - IEEE
+is the most challenging scenario, as the training dataset is
+Conference on Computer Communications, 2024, pp. 2099–2108.
+simulated but the frames between training and test datasets
+[13] J. Zhang, R. Woods, M. Sandell, M. Valkama, A. Marshall, and
+are not overlapping. The accuracy is still as high as 99.92%, J. Cavallaro, “Radio frequency fingerprint identification for narrowband
+systems, modelling and classification,” IEEE Trans. Inf. Forensics Secu-
+which indicates that our approach can replicate the PA features
+rity, vol. 16, pp. 3974–3987, 2021.
+accurately.
+[14] H. Fu, Y. Sun, L. Peng, and M. Liu, “Channel-resilient RF fingerprint
+identification based on nonlinear features with memory effect,” IEEE
+VI. C
+ONCLUSION
+Commun. Lett., vol. 28, no. 4, pp. 798–802, Apr. 2024.
+[15] Y. Li, Y. Ding, J. Zhang, G. Goussetis, and S. K. Podilchak, “Radio
+In this paper, we modeled and estimated the PA parameters
+frequency fingerprinting exploiting non-linear memory effect,” IEEE
+for the purpose of RFFI and carried out experimental evalu-
+Trans. Cogn. Commun. Netw., vol. 8, no. 4, pp. 1618–1631, Dec. 2022.
+ation using IEEE 802.15.4 devices. The memory polynomial [16] Y. Li, K. Xu, J. Zhang, C. Gu, Y. Ding, G. Goussetis, and S. Podilchak,
+“PUF-assisted radio frequency fingerprinting exploiting power amplifier
+model of PA was adopted, consisting of polynomial order,
+active load-pulling,” IEEE Trans. Inf. Forensics Secur., 2024.
+memory depth, and Volterra kernel vector. We used grid search
+[17] W.-L. Mao, W.-Z. Chen, C.-T. Yao, S.-H. Chen, and C.-C. Wang,
+to estimate the polynomial order. We then simulated the signals “Digital predistortion technique using kernel adaptive algorithm for
+nonlinear power amplifier,” in 2022 IET International Conference on
+with the generated PA features and designed a CNN-based
+Engineering Technologies and Applications (IET-ICETA), 2022, pp. 1–
+RFFI model to find the optimal memory depth. A testbed was
+2.
+created including 60 IEEE 802.15.4 devices and a USRP X310 [18] F. Abedi, “Digital pre-distorter system based on memoryless hammer-
+stein model for high power amplifier impairments,” Arabian Journal for
+SDR platform as the receiver. The PA of the device can be
+Science and Engineering, vol. 49, no. 5, pp. 6419–6428, 2024.
+disabled which allowed us to generate signals both with and
+[19] G. Mohiuddin, M. M. Shaikh, S. A. Dahri, F. Panhwar, K. A. Memon,
+without PA features. Our experimental results demonstrated and N. Madina, “Characterization of rf power amplifier for narrow and
+wide band memory polynomial implementations.”
+that our proposed algorithms can replicate the features of PA
+[20] D. Wang, Y. Lei, and L. Zeng, “A pruning method of the generalized
+accurately. Specifically, when we used simulated signals as
+memory polynomial model for power amplifiers based on the lasso
+training dataset and real collected signals as test dataset, a regression,” in 2023 IEEE 6th International Conference on Electronic
+Information and Communication Technology (ICEICT), 2023, pp. 182–
+classification accuracy as high as 99.92% can be obtained,
+185.
+under high SNR scenarios (40 dB).
+[21] Power amplifier characterization. 2024. [Online].
+Available: https://ww2.mathworks.cn/help/comm/ug/power-amplifier-
+R
+EFERENCES
+characterization.html
+[22] K. Sankhe, M. Belgiovine, F. Zhou, S. Riyaz, S. Ioannidis, and
+[1] P. Kushwaha, H. Sonkar, F. Altaf, and S. Maity, “A brief survey
+K. Chowdhury, “ORACLE: Optimized radio classification through con-
+of challenge–response authentication mechanisms,” ICT Analysis and
+volutional neural networks,” in Proc. IEEE INFOCOM, Paris, France,
+Applications: Proceedings of ICT4SD 2020, Volume 2, pp. 573–581,
+2019, pp. 370–378.
+2021.
+[2] N. Potlapally, S. Ravi, A. Raghunathan, and N. Jha, “A study of the
+energy consumption characteristics of cryptographic algorithms and
+security protocols,” IEEE Transactions on Mobile Computing, vol. 5,
+no. 2, pp. 128–143, 2006.
+Authorized licensed use limited to: Southeast University. Downloaded on December 08,2025 at 09:42:03 UTC from IEEE Xplore. Restrictions apply.
