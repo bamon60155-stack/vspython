@@ -3,6 +3,7 @@ from datetime import datetime
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from clean_low_quality_chunk import is_low_quality_chunk
 from vector_store import vector_store
+from zoneinfo import ZoneInfo
 
 # 只在模块加载的时候执行一次的准备工作
 
@@ -53,7 +54,7 @@ def search_document(query: str) -> str:
 @tool
 def get_current_time() -> str:
     """获取当前的日期和时间"""
-    now = datetime.now()
+    now = datetime.now(ZoneInfo("Asia/Shanghai"))
     return now.strftime("%Y-%m-%d %H:%M:%S")
 
 @tool
@@ -64,6 +65,9 @@ def calculate_crb(constellation: str, N: int, snr_db: float) -> str:
     支持的星座类型：BPSK, QPSK, 8PSK, 16QAM, 64QAM
     当用户询问某种调制方式下的CRB、可辨识性、Fisher信息量相关计算时使用。"""
 
+    if N <= 0:
+        return "错误：N 必须为正整数，请重新输入。"
+    
     constellation = constellation.upper().replace("-", "")
     if constellation not in CONSTELLATION_PARAMS:
         return f"不支持的调制类型：{constellation}，支持的类型有：{list(CONSTELLATION_PARAMS.keys())}"
@@ -93,18 +97,18 @@ def calculate_crb(constellation: str, N: int, snr_db: float) -> str:
     return result
 
 # 接入Agent，测试
-from langchain_openai import ChatOpenAI
-from langchain.agents import create_agent
-import os
+# from langchain_openai import ChatOpenAI
+# from langchain.agents import create_agent
+# import os
 
-llm = ChatOpenAI(
-    model="deepseek-v4-flash",
-    api_key=os.environ.get("DEEPSEEK_API_KEY"),
-    base_url="https://api.deepseek.com"
-)
+# llm = ChatOpenAI(
+#     model="deepseek-v4-flash",
+#     api_key=os.environ.get("DEEPSEEK_API_KEY"),
+#     base_url="https://api.deepseek.com"
+# )
 
-tools = [get_current_time, search_document, calculate_crb]
-agent = create_agent(llm, tools)
+# tools = [get_current_time, search_document, calculate_crb]
+# agent = create_agent(llm, tools)
 
-response = agent.invoke({"messages":[{"role": "user", "content": "帮我算一下BPSK调制、已知符号数76、信噪比20dB情况下的CRB"}]})
-print(response["messages"][-1].content)
+# response = agent.invoke({"messages":[{"role": "user", "content": "帮我算一下BPSK调制、已知符号数76、信噪比20dB情况下的CRB"}]})
+# print(response["messages"][-1].content)
